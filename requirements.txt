@@ -1,0 +1,8 @@
+fastapi>=0.115
+sqlmodel>=0.0.48
+python-dateutil>=2.9
+uvicorn[standard]>=0.30
+
+# desenvolvimento
+pytest>=8
+httpx2  # cliente de testes do FastAPI/Starlette

@@ -1,0 +1,15 @@
+# Banco de dados e backups (dados pessoais: nunca no Git)
+data/
+*.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Segredos
+.env
+*.json.key
+service-account*.json
