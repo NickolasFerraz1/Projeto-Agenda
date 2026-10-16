@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icone, erros_box %}
+{% set aba = "projetos" %}
+{% block titulo %}Importar plano · Agenda{% endblock %}
+{% block conteudo %}
+<div class="cabecalho-pagina">
+	<a class="btn-icone" href="/projetos" aria-label="Voltar">{{ icone("esq", 20) }}</a>
+	<h1 class="titulo-pagina">Importar plano</h1>
+</div>
+<p class="dica">Escreva o planejamento no Obsidian (ou peça para uma IA montar) e importe aqui: o app cria o projeto, as etapas e as tarefas. Pode reimportar depois de editar: atualiza sem duplicar.</p>
+
+{# Textos para copiar (ficam escondidos; os botões copiam para a área de transferência) #}
+<textarea id="txt-prompt-criar" class="oculto" readonly>{{ prompt_criar }}</textarea>
+<textarea id="txt-prompt-converter" class="oculto" readonly>{{ prompt_converter }}</textarea>
+<textarea id="txt-modelo" class="oculto" readonly>{{ modelo }}</textarea>
+
+<section class="bloco" x-data="{
+	copiado: '',
+	async copiar(id) {
+		const el = document.getElementById(id);
+		try { await navigator.clipboard.writeText(el.value); }
+		catch (e) { el.classList.remove('oculto'); el.select(); document.execCommand('copy'); el.classList.add('oculto'); }
+		this.copiado = id; setTimeout(() => { if (this.copiado === id) this.copiado = ''; }, 2000);
+	},
+}">
+	<h2>1. Preparar</h2>
+	<div class="cartoes cartoes-acao">
+		<div class="cartao cartao-acao">
+			<span class="cartao-titulo">Criar com IA</span>
+			<span class="meta">Prompt pronto: preencha objetivo, nível e tempo disponível e cole numa conversa com o Claude.</span>
+			<button type="button" class="btn" @click="copiar('txt-prompt-criar')" x-text="copiado === 'txt-prompt-criar' ? 'Copiado!' : 'Copiar prompt'">Copiar prompt</button>
+		</div>
+		<div class="cartao cartao-acao">
+			<span class="cartao-titulo">Converter um plano que já tenho</span>
+			<span class="meta">Prompt para reescrever (ou atualizar) um planejamento seu no formato do app, sem perder conteúdo.</span>
+			<button type="button" class="btn-sec" @click="copiar('txt-prompt-converter')" x-text="copiado === 'txt-prompt-converter' ? 'Copiado!' : 'Copiar prompt'">Copiar prompt</button>
+		</div>
+		<div class="cartao cartao-acao">
+			<span class="cartao-titulo">Modelo em branco</span>
+			<span class="meta">Para escrever à mão no Obsidian. Salve na pasta de Templates para reutilizar.</span>
+			<span class="botoes">
+				<button type="button" class="btn-sec" @click="copiar('txt-modelo')" x-text="copiado === 'txt-modelo' ? 'Copiado!' : 'Copiar modelo'">Copiar modelo</button>
+				<a class="btn-sec" href="/importar/modelo.md" hx-boost="false" download>Baixar .md</a>
+			</span>
+		</div>
+	</div>
+	<details class="formato">
+		<summary>Ver o formato completo</summary>
+		<pre>{{ formato }}</pre>
+	</details>
+</section>
+
+<section class="bloco">
+	<h2>2. Importar</h2>
+	{{ erros_box(erros) }}
+	<form method="post" action="/importar/aplicar" class="formulario formulario-largo"
+		x-data="{ ler(ev) { const f = ev.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { $refs.texto.value = r.result; }; r.readAsText(f, 'utf-8'); } }">
+		<label class="arquivo">Enviar arquivo .md <input type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" @change="ler($event)"></label>
+		<label>ou cole o planejamento
+			<textarea x-ref="texto" name="texto" rows="14" required spellcheck="false" placeholder="---&#10;projeto: Piano&#10;area: Estudo&#10;sequencial: true&#10;---&#10;## Semana 1&#10;- [ ] Postura | 1h | [vídeo](https://…)">{{ texto or '' }}</textarea>
+		</label>
+		<div class="acoes">
+			<button type="button" class="btn-sec" hx-post="/importar/previa" hx-target="#previa" hx-include="closest form">Pré-visualizar</button>
+		</div>
+		<div id="previa"></div>
+	</form>
+</section>
+{% endblock %}

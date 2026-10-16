@@ -33,8 +33,23 @@
 			{%- if qtd and i.progresso_total %}<span class="pct">{{ i.progresso_atual|num or 0 }}/{{ i.progresso_total|num }}{% if i.progresso_unidade %} {{ i.progresso_unidade }}{% endif %}</span>{% endif %}
 		</span>
 	</a>
-	{% if qtd and not feito %}
-	<button class="btn-mais1" hx-post="/incrementar/{{ i.id }}{{ q }}" hx-target="closest li" hx-swap="outerHTML"
-		aria-label="Mais um ({{ i.titulo }})">+1</button>
+	{% set pode_remarcar = remarcavel and i.projeto_id and not i.recorrencia and not feito %}
+	{% if pode_remarcar or (qtd and not feito) %}
+	<span class="botoes-linha">
+		{% if pode_remarcar %}
+		<details class="menu-remarcar">
+			<summary class="btn-mais1" aria-label="Remarcar {{ i.titulo }}">{{ icone("semana", 14) }}</summary>
+			<div class="menu">
+				<span class="menu-titulo">Remarcar nos horários do plano</span>
+				<button hx-post="/remarcar/{{ i.id }}?modo=so" hx-target="#hoje-conteudo" hx-swap="outerHTML">Só esta<small>próximo horário livre</small></button>
+				<button hx-post="/remarcar/{{ i.id }}?modo=empurrar" hx-target="#hoje-conteudo" hx-swap="outerHTML">Esta e as seguintes<small>empurra a etapa, mantendo a ordem</small></button>
+			</div>
+		</details>
+		{% endif %}
+		{% if qtd and not feito %}
+		<button class="btn-mais1" hx-post="/incrementar/{{ i.id }}{{ q }}" hx-target="closest li" hx-swap="outerHTML"
+			aria-label="Mais um ({{ i.titulo }})">+1</button>
+		{% endif %}
+	</span>
 	{% endif %}
 </li>

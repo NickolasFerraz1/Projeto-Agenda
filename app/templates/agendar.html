@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icone, erros_box %}
+{% set aba = "projetos" %}
+{% block titulo %}Agendar · {{ p.nome }} · Agenda{% endblock %}
+{% block conteudo %}
+<nav class="trilha" aria-label="Caminho"><a href="/projetos">Projetos</a><span>›</span><span>{{ p.caminho }}</span></nav>
+<div class="cabecalho-pagina">
+	<a class="btn-icone" href="/projetos/{{ p.id }}" aria-label="Voltar">{{ icone("esq", 20) }}</a>
+	<h1 class="titulo-pagina">Agendar “{{ p.nome }}”</h1>
+</div>
+<p class="dica">Distribui as tarefas em aberto (na ordem do plano, incluindo as subetapas) nos seus horários de estudo, respeitando a duração de cada uma e o que já está na agenda. Os horários ficam guardados para as próximas etapas.</p>
+
+{{ erros_box(erros) }}
+
+<form method="post" action="/projetos/{{ p.id }}/agendar" class="formulario">
+	<fieldset>
+		<legend>Horários de estudo</legend>
+		{% if herdado %}<p class="dica">Usando os horários guardados: {{ herdado.texto() }}.</p>{% endif %}
+		<div class="dias-semana">
+			{% for d in DIAS %}
+			<label class="chip-check"><input type="checkbox" name="dias" value="{{ d }}" {{ "checked" if d in f.dias }}><span>{{ DIAS_NOME[d] }}</span></label>
+			{% endfor %}
+		</div>
+		<div class="linha">
+			<label class="estreito">Início <input type="time" name="hora" value="{{ f.hora }}" required></label>
+			<label class="estreito">Duração da sessão (min) <input type="number" name="minutos" min="10" max="720" step="5" value="{{ f.minutos }}" required></label>
+			<label class="estreito">A partir de <input type="date" name="a_partir" value="{{ f.a_partir }}"></label>
+		</div>
+		<div class="opcoes-atrasadas">
+			<span class="rotulo">Tarefas atrasadas (marcadas no passado e não feitas)</span>
+			<label class="check"><input type="radio" name="atrasadas" value="livres" {{ "checked" if f.atrasadas == "livres" }}>
+				<span>Remarcar nos espaços livres<small>só as atrasadas mudam; o que já está marcado no futuro fica onde está (tarefas independentes)</small></span></label>
+			<label class="check"><input type="radio" name="atrasadas" value="empurrar" {{ "checked" if f.atrasadas == "empurrar" }}>
+				<span>Remarcar e empurrar as seguintes<small>redistribui também as já marcadas, mantendo a ordem do plano (quando uma depende da anterior)</small></span></label>
+			<label class="check"><input type="radio" name="atrasadas" value="nao" {{ "checked" if f.atrasadas == "nao" }}>
+				<span>Não mexer nas atrasadas<small>agenda só as tarefas sem data</small></span></label>
+		</div>
+	</fieldset>
+
+	<div class="acoes">
+		<button type="button" class="btn-sec" hx-post="/projetos/{{ p.id }}/agendar/previa" hx-target="#previa-agenda" hx-include="closest form">Ver prévia</button>
+	</div>
+	<div id="previa-agenda"></div>
+</form>
+
+<form method="post" action="/projetos/{{ p.id }}/desagendar" class="zona-perigo"
+	hx-confirm="Tirar a data das tarefas em aberto (de hoje em diante) de “{{ p.nome }}”? Elas voltam para sem data.">
+	<button class="btn-sec">Desagendar tarefas futuras</button>
+	<p class="dica">Desfaz um agendamento: as tarefas em aberto de hoje em diante voltam para “sem data”. O passado e as concluídas não mudam.</p>
+</form>
+{% endblock %}

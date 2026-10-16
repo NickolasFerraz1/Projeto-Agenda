@@ -4,7 +4,8 @@ from sqlmodel import Session, select
 from app.db import get_session
 from app.models import Area, Item, Projeto, StatusProjeto
 from app.routers.common import apply_update, check_fk, get_or_404, item_out, projeto_out, replace_links
-from app.schemas import ItemOut, ProjetoIn, ProjetoOut, ProjetoUpdate
+from app.schemas import AgendarIn, ItemOut, ProjetoIn, ProjetoOut, ProjetoUpdate
+from app.services import agendar as svc_agendar
 from app.services.progresso import Arvore, chave_irmaos
 
 router = APIRouter(prefix="/api/projetos", tags=["projetos"])
@@ -103,3 +104,37 @@ def excluir(projeto_id: int, session: Session = Depends(get_session)):
 	session.flush()
 	session.delete(projeto)
 	session.commit()
+
+
+@router.post("/{projeto_id}/agendar")
+def agendar(projeto_id: int, dados: AgendarIn, session: Session = Depends(get_session)):
+	"""Distribui as tarefas em aberto (sem data; com `remarcar`, as atrasadas; com `empurrar`,
+	também as já marcadas no futuro) do projeto e das subetapas nos horários informados.
+	`simular=true` só devolve a prévia."""
+	from datetime import time
+
+	get_or_404(session, Projeto, projeto_id)
+	horarios = svc_agendar.Horarios(dados.dias, time.fromisoformat(dados.hora), dados.minutos)
+	ag = svc_agendar.planejar(session, projeto_id, horarios, dados.a_partir, dados.remarcar, empurrar=dados.empurrar)
+	resposta = {
+		"horarios": horarios.texto(),
+		"encaixes": [
+			{"item_id": e.item.id, "titulo": e.item.titulo, "etapa": e.caminho, "inicio": e.inicio, "fim": e.fim, "estourou": e.estourou}
+			for e in ag.encaixes
+		],
+		"sobras": [{"item_id": i.id, "titulo": i.titulo} for i in ag.sobras],
+		"avisos": ag.avisos,
+		"aplicado": False,
+	}
+	if not dados.simular and ag.encaixes:
+		_, destino = svc_agendar.horarios_herdados(session, projeto_id)
+		svc_agendar.aplicar(session, projeto_id, ag, guardar_em=destino)
+		resposta["aplicado"] = True
+	return resposta
+
+
+@router.post("/{projeto_id}/desagendar")
+def desagendar(projeto_id: int, session: Session = Depends(get_session)):
+	"""Tira a data das tarefas em aberto (de hoje em diante) do projeto e das subetapas."""
+	get_or_404(session, Projeto, projeto_id)
+	return {"removidos": svc_agendar.desagendar(session, projeto_id)}

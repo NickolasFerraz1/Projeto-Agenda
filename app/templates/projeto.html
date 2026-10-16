@@ -15,8 +15,16 @@
 <div class="cabecalho-pagina">
 	<a class="btn-icone" href="{{ '/projetos/%d' % p.pai_id if p.pai_id else '/projetos' }}" aria-label="Voltar">{{ icone("esq", 20) }}</a>
 	<h1 class="titulo-pagina">{{ p.nome }}</h1>
+	<a class="btn-sec" href="/projetos/{{ p.id }}/agendar">{{ icone("semana", 16) }}<span class="so-largo">Agendar</span></a>
 	<a class="btn-sec" href="/projetos/{{ p.id }}/editar">Editar</a>
 </div>
+
+{% if etapa_para_agendar %}
+<div class="sugestao">
+	<span>{{ icone("play", 14) }} <strong>{{ etapa_para_agendar.nome }}</strong> está liberada e tem tarefas sem data.</span>
+	<a class="btn" href="/projetos/{{ etapa_para_agendar.id }}/agendar">Agendar{% if horarios %} ({{ horarios.texto() }}){% endif %}</a>
+</div>
+{% endif %}
 
 <div class="resumo-projeto" style="--cor: {{ area.cor if area else '#888' }}">
 	<p class="meta">

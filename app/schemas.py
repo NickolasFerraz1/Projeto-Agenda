@@ -65,6 +65,9 @@ class ProjetoIn(ProgressoIn):
 	prioridade: Prioridade | None = None  # herda do pai quando omitida (padrão: média)
 	ordem: int = 0
 	sequencial: bool = False
+	agenda_dias: str | None = Field(default=None, pattern=r"^(MO|TU|WE|TH|FR|SA|SU)(,(MO|TU|WE|TH|FR|SA|SU))*$")
+	agenda_hora: str | None = Field(default=None, pattern=r"^\d{2}:\d{2}$")
+	agenda_minutos: int | None = Field(default=None, ge=10, le=12 * 60)
 	status: StatusProjeto = StatusProjeto.ativo
 	link: str | None = None
 	notas: str | None = None
@@ -74,6 +77,9 @@ class ProjetoIn(ProgressoIn):
 class ProjetoUpdate(ProgressoIn):
 	nome: str | None = Field(default=None, max_length=120)
 	pai_id: int | None = None
+	agenda_dias: str | None = Field(default=None, pattern=r"^(MO|TU|WE|TH|FR|SA|SU)(,(MO|TU|WE|TH|FR|SA|SU))*$")
+	agenda_hora: str | None = Field(default=None, pattern=r"^\d{2}:\d{2}$")
+	agenda_minutos: int | None = Field(default=None, ge=10, le=12 * 60)
 	area_id: int | None = None
 	ordem: int | None = None
 	sequencial: bool | None = None
@@ -92,6 +98,9 @@ class ProjetoOut(ProgressoOut):
 	ordem: int
 	sequencial: bool
 	bloqueado: bool = False  # travado por um pai sequencial
+	agenda_dias: str | None = None  # horários de estudo (Agendar)
+	agenda_hora: str | None = None
+	agenda_minutos: int | None = None
 	area_id: int
 	prioridade: Prioridade
 	status: StatusProjeto
@@ -100,6 +109,24 @@ class ProjetoOut(ProgressoOut):
 	links: list[LinkOut] = []
 	criado_em: datetime
 	atualizado_em: datetime
+
+
+class AgendarIn(BaseModel):
+	dias: list[str] = Field(min_length=1)  # ["MO", "WE", "FR"]
+	hora: str = Field(pattern=r"^\d{2}:\d{2}$")  # "19:00"
+	minutos: int = Field(ge=10, le=12 * 60)  # duração de cada sessão
+	a_partir: date | None = None
+	remarcar: bool = True  # inclui tarefas agendadas no passado e não feitas
+	empurrar: bool = False  # redistribui também as já marcadas no futuro, mantendo a ordem
+	simular: bool = False  # True = só prévia
+
+	@field_validator("dias")
+	@classmethod
+	def _dias(cls, v):
+		validos = {"MO", "TU", "WE", "TH", "FR", "SA", "SU"}
+		if any(d not in validos for d in v):
+			raise ValueError("dias: use MO, TU, WE, TH, FR, SA, SU")
+		return v
 
 
 # ---------- Item ----------

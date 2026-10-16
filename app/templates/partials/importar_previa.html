@@ -1,0 +1,50 @@
+{% from "_macros.html" import icone %}
+{% if erro %}
+<div class="erros" role="alert"><p>{{ erro }}</p></div>
+{% else %}
+{% set c = rel.contagem %}
+{% macro conta(tipo, rotulo_s, rotulo_p) -%}
+	{%- set n = c.get(tipo ~ "_novo", 0) -%}{%- set a = c.get(tipo ~ "_atualizado", 0) -%}{%- set i = c.get(tipo ~ "_igual", 0) -%}
+	{%- if n + a + i -%}
+	<li><strong>{{ n + a + i }}</strong> {{ rotulo_s if n + a + i == 1 else rotulo_p }}:
+		{%- if n %} <span class="acao acao-novo">{{ n }} {{ "novo" if n == 1 else "novos" }}</span>{% endif %}
+		{%- if a %} <span class="acao acao-atualizado">{{ a }} {{ "atualizado" if a == 1 else "atualizados" }}</span>{% endif %}
+		{%- if i %} <span class="acao acao-igual">{{ i }} sem mudança</span>{% endif %}
+	</li>
+	{%- endif -%}
+{%- endmacro %}
+<div class="previa">
+	<h3>Prévia</h3>
+	<ul class="resumo-import">
+		{{ conta("projeto", "projeto", "projetos") }}
+		{{ conta("etapa", "etapa", "etapas") }}
+		{{ conta("item", "tarefa", "tarefas") }}
+	</ul>
+
+	{% if rel.avisos %}
+	<div class="avisos">{% for a in rel.avisos %}<p>⚠ {{ a }}</p>{% endfor %}</div>
+	{% endif %}
+
+	<ul class="arvore">
+		{% for nivel, tipo, nome, acao, feito, minutos in rel.linhas %}
+		<li style="--nivel: {{ nivel - 1 }}" class="{{ 'arv-item' if tipo == 'item' else 'arv-pasta' }} {{ 'arv-feito' if feito }}">
+			{%- if tipo != "item" %}{{ icone("projetos", 13) }}{% elif feito %}{{ icone("check", 12) }}{% else %}<span class="arv-circulo"></span>{% endif %}
+			<span>{{ nome }}</span>
+			{%- if minutos %}<span class="arv-dur">{{ minutos|duracao }}</span>{% endif %}
+			{%- if acao != "igual" %}<span class="acao acao-{{ acao }}">{{ acao }}</span>{% endif %}
+		</li>
+		{% endfor %}
+	</ul>
+
+	{% if rel.mantidos %}
+	<details>
+		<summary class="dica">{{ rel.mantidos|length }} {{ "coisa existe" if rel.mantidos|length == 1 else "coisas existem" }} no app e não {{ "está" if rel.mantidos|length == 1 else "estão" }} no plano (ficam como estão)</summary>
+		<ul class="dica">{% for m in rel.mantidos %}<li>{{ m }}</li>{% endfor %}</ul>
+	</details>
+	{% endif %}
+
+	<div class="acoes">
+		<button class="btn">{{ icone("check", 16) }} Confirmar importação</button>
+	</div>
+</div>
+{% endif %}

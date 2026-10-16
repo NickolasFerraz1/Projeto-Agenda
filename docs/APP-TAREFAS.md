@@ -161,8 +161,13 @@ tarefas/
    - **5.2.1** ✅: hierarquia de projetos (subprojetos, trilha, herança), progresso automático em cascata
      (ponderado pela duração), etapas sequenciais, duração estimada, botão +1, notas em Markdown,
      "Repetir" sempre visível, prioridade baixa discreta, migração automática de colunas.
-   - **5.2.2**: importador de planejamento (Obsidian → app): modelo `.md`, prompt pronto para IA
+   - **5.2.2** ✅: importador de planejamento (Obsidian → app): modelo `.md`, prompt pronto para IA
      (criar/converter), prévia e reimportação sem duplicar. Ver "Planejamento" abaixo.
+   - **5.2.3** ✅: agendar etapa: tarefas da etapa liberada encaixadas nos horários de estudo
+     (dias, hora, duração da sessão), na ordem do plano, desviando do que já está na agenda;
+     atrasadas: remarcar nos espaços livres ou empurrar as seguintes (mantendo a ordem), também
+     direto na Hoje (botão 📅 na tarefa atrasada); desagendar; horários guardados no plano e sugestão quando a próxima
+     etapa libera (na Hoje e no projeto).
 3. **5.3 Deploy no Pi**: serviço systemd, Tailscale, `tailscale serve`, backup.
 4. **5.4 Google Agenda**: conta de serviço, agenda dedicada, sincronização.
 5. **5.5 Espelho**: coluna "Hoje" na Início e página Agenda.
@@ -178,8 +183,6 @@ tarefas/
 - Cada projeto importado ganha um link "Planejamento" que abre a nota no Obsidian (`obsidian://`).
 
 ## Ideias para depois (combinadas, não esquecer)
-- **Agendar etapas na semana**: escolher dias/horário (ex.: seg/qua/sex 19h) e o app distribui os
-  tópicos da etapa atual na agenda.
 - **Botão no Obsidian** ("Enviar para a Agenda"): plugin pequeno que manda a nota direto para a API
   do Pi via Tailscale.
 - **Geração do plano com IA**: descrever o objetivo ("piano do zero, 3 h/semana, 10 semanas") e

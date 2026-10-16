@@ -31,6 +31,8 @@ Páginas renderizadas no servidor (Jinja2) com HTMX e Alpine.js, sem passo de bu
 | Projetos | `/projetos` | cartões com progresso; detalhe com links, notas e itens |
 | Item | `/itens/{id}`, `/itens/novo` | edição completa: quando, repetição, prazo, progresso, links, notas |
 | Áreas | `/areas` | nome e cor de cada área |
+| Agendar | `/projetos/{id}/agendar` | distribui as tarefas da etapa nos horários de estudo (prévia; atrasadas: espaços livres ou empurrar as seguintes; desagendar) |
+| Importar plano | `/importar` | planejamento em Markdown (Obsidian) → projeto, etapas e tarefas; modelo e prompts para IA |
 
 - **Projetos em níveis** (Pós FIAP › Fase 3 › Bloco › aulas): cada projeto pode ter subprojetos.
   Subprojeto herda área e prioridade do pai. Excluir um projeto sobe os filhos um nível.
@@ -46,6 +48,24 @@ Páginas renderizadas no servidor (Jinja2) com HTMX e Alpine.js, sem passo de bu
   exige HTTPS (no Pi, via `tailscale serve`) ou `localhost`.
 - Mudou CSS/JS/ícones? Incremente `ASSET_VERSION` em `app/config.py` para renovar o cache do PWA.
 - Ícones: `python scripts/gerar_icones.py` (precisa de `pillow`).
+
+## Planejamento (Obsidian → app)
+
+Formato completo em `/importar` ("Ver o formato completo") ou `GET /api/planos/formato`. Resumo:
+
+```markdown
+---
+projeto: Piano
+area: Estudo
+sequencial: true
+---
+## Semana 1
+Meta da semana: postura.
+- [ ] Postura e posição das mãos | 1h | [vídeo](https://...)
+- [ ] Escala de Dó | 30min | 0 de 3 repetições | !alta
+```
+
+Reimportar atualiza pelo nome, não duplica, nunca apaga e mantém o que foi concluído/progredido no app.
 
 ## Testes
 
@@ -68,6 +88,11 @@ pytest -q
 | DELETE | `/api/itens/{id}/ocorrencias/{data}` | desfazer o registro do dia |
 | GET | `/api/agenda?de=AAAA-MM-DD&ate=AAAA-MM-DD` | agendados, ocorrências de recorrentes e prazos |
 | GET | `/api/hoje` | agenda de hoje + atrasados + pendências sem data |
+| GET | `/api/planos/modelo`, `/api/planos/formato`, `/api/planos/prompt?modo=criar\|converter` | modelo, especificação e prompts do planejamento (texto) |
+| POST | `/api/projetos/{id}/agendar` | `{"dias": ["MO","WE","FR"], "hora": "19:00", "minutos": 60, "simular": true}` |
+| POST | `/remarcar/{item_id}?modo=so\|empurrar` | (interface) remarca uma tarefa atrasada nos horários do plano |
+| POST | `/api/projetos/{id}/desagendar` | tarefas em aberto de hoje em diante voltam para "sem data" |
+| POST | `/api/planos/previa`, `/api/planos/importar` | `{"texto": "..."}`: simula / importa um planejamento |
 
 Horários são locais, sem fuso (ex.: `2026-10-20T19:00`). Recorrência no padrão RRULE do
 iCalendar (ex.: `FREQ=WEEKLY;BYDAY=TU,TH`); o `inicio` do item define o horário e o primeiro dia.

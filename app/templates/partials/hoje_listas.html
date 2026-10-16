@@ -1,6 +1,14 @@
 {% from "_macros.html" import erros_box %}
 <div id="hoje-conteudo">
 	{{ erros_box(erros_captura) }}
+	{% if aviso_remarcar %}<div class="sugestao" role="status"><span>{{ aviso_remarcar }}</span></div>{% endif %}
+
+	{% for plano_, etapa_, horario_ in sugestoes or [] %}
+	<div class="sugestao">
+		<span><strong>{{ plano_.nome }}</strong>: {{ etapa_.nome }} liberada e ainda sem data.</span>
+		<a class="btn" href="/projetos/{{ etapa_.id }}/agendar">Agendar</a>
+	</div>
+	{% endfor %}
 
 	<section class="bloco">
 		<h2>Agenda</h2>
@@ -17,7 +25,9 @@
 	<section class="bloco bloco-alerta">
 		<h2>Atrasados <span class="contador">{{ resumo.atrasados|length }}</span></h2>
 		<ul class="lista">
+			{% set remarcavel = True %}
 			{% for i in resumo.atrasados %}{% include "partials/linha_item.html" %}{% endfor %}
+			{% set remarcavel = False %}
 		</ul>
 	</section>
 	{% endif %}

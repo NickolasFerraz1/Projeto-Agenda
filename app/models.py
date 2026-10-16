@@ -82,6 +82,10 @@ class Projeto(ProgressoCampos, Timestamps, table=True):
 	ordem: int = 0  # posição entre os irmãos (0 = ordem natural pelo nome)
 	sequencial: bool = False  # subprojetos liberam um de cada vez, na ordem
 	progresso_modo: ProgressoModo = ProgressoModo.itens  # projetos: automático por padrão
+	# Horários de estudo para "Agendar" (guardados no plano e herdados pelas etapas)
+	agenda_dias: str | None = None  # "MO,WE,FR"
+	agenda_hora: str | None = None  # "19:00"
+	agenda_minutos: int | None = None  # duração de cada sessão
 	area_id: int = Field(foreign_key="area.id", index=True)
 	prioridade: Prioridade = Prioridade.media
 	status: StatusProjeto = StatusProjeto.ativo

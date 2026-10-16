@@ -7,7 +7,7 @@ import re
 from datetime import date, datetime, time, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
 from pydantic import ValidationError
@@ -33,7 +33,7 @@ from app.routers import itens as api_itens
 from app.routers import projetos as api_projetos
 from app.routers.common import get_or_404, item_out
 from app.schemas import AreaIn, AreaUpdate, ItemIn, ItemUpdate, ProjetoIn, ProjetoUpdate
-from app.services import markdown, recorrencia
+from app.services import agendar, duracao, markdown, plano, recorrencia
 from app.services.progresso import Arvore, ordem_natural
 
 router = APIRouter(include_in_schema=False)
@@ -87,33 +87,8 @@ def _num(x):
 	return f"{x:g}".replace(".", ",")
 
 
-def ler_duracao(texto: str | None) -> int | None:
-	"""'1h', '1h30', '1:30', '90', '90min', '1,5h' -> minutos. Vazio -> None."""
-	t = (texto or "").strip().lower().replace(" ", "").replace(",", ".")
-	if not t:
-		return None
-	m = re.fullmatch(r"(\d+(?:\.\d+)?)h(?:(\d+)(?:m|min)?)?", t)
-	if m:
-		total = round(float(m.group(1)) * 60) + int(m.group(2) or 0)
-	elif m := re.fullmatch(r"(\d+):(\d{1,2})", t):
-		total = int(m.group(1)) * 60 + int(m.group(2))
-	elif m := re.fullmatch(r"(\d+)(?:m|min)?", t):
-		total = int(m.group(1))
-	else:
-		raise ValueError(f"duração inválida: {texto!r} (use 1h, 1h30, 45min…)")
-	if total < 1:
-		raise ValueError("duração precisa ser de pelo menos 1 minuto")
-	return total
-
-
-def _duracao_txt(minutos: int | None) -> str:
-	"""90 -> '1h30' ; 60 -> '1h' ; 45 -> '45min'"""
-	if not minutos:
-		return ""
-	h, m = divmod(int(minutos), 60)
-	if not h:
-		return f"{m}min"
-	return f"{h}h{m:02d}" if m else f"{h}h"
+ler_duracao = duracao.ler  # usado também pelos testes
+_duracao_txt = duracao.texto
 
 
 templates.env.filters.update(
@@ -238,7 +213,7 @@ def offline(request: Request):
 
 # ---------- Hoje ----------
 def _ctx_hoje(session: Session, dia: date) -> dict:
-	return {"resumo": api_agenda.hoje(dia, session), "dia": dia, "caminhos": _caminhos(session)}
+	return {"resumo": api_agenda.hoje(dia, session), "dia": dia, "caminhos": _caminhos(session), "sugestoes": _sugestoes_agendar(session)}
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -469,6 +444,8 @@ def pagina_projeto(request: Request, projeto_id: int, session: Session = Depends
 		abertos=abertos,
 		fechados=fechados,
 		caminhos=_caminhos(session, ocultar=projeto_id),
+		etapa_para_agendar=agendar.proxima_para_agendar(session, projeto_id),
+		horarios=agendar.horarios_herdados(session, projeto_id)[0],
 	)
 
 
@@ -706,3 +683,158 @@ def excluir_area(request: Request, area_id: int, session: Session = Depends(get_
 	except HTTPException as exc:
 		return render(request, "areas.html", session, erros=_erros(exc))
 	return _redirect("/areas")
+
+
+# ---------- Importar planejamento ----------
+@router.get("/importar", response_class=HTMLResponse)
+def pagina_importar(request: Request, session: Session = Depends(get_session)):
+	return render(
+		request, "importar.html", session,
+		aba="projetos", modelo=plano.MODELO, formato=plano.FORMATO,
+		prompt_criar=plano.prompt("criar"), prompt_converter=plano.prompt("converter"),
+	)
+
+
+@router.get("/importar/modelo.md")
+def baixar_modelo():
+	return Response(
+		plano.MODELO, media_type="text/markdown; charset=utf-8",
+		headers={"Content-Disposition": 'attachment; filename="Planejamento.md"'},
+	)
+
+
+@router.post("/importar/previa", response_class=HTMLResponse)
+async def previa_importacao(request: Request, session: Session = Depends(get_session)):
+	texto = (await request.form()).get("texto") or ""
+	try:
+		rel = plano.aplicar(session, plano.ler(texto), simular=True)
+	except plano.ErroPlano as exc:
+		return render(request, "partials/importar_previa.html", erro=str(exc))
+	return render(request, "partials/importar_previa.html", rel=rel)
+
+
+@router.post("/importar/aplicar", response_class=HTMLResponse)
+async def aplicar_importacao(request: Request, session: Session = Depends(get_session)):
+	texto = (await request.form()).get("texto") or ""
+	try:
+		rel = plano.aplicar(session, plano.ler(texto), simular=False)
+	except plano.ErroPlano as exc:
+		return render(
+			request, "importar.html", session,
+			aba="projetos", modelo=plano.MODELO, formato=plano.FORMATO,
+			prompt_criar=plano.prompt("criar"), prompt_converter=plano.prompt("converter"),
+			texto=texto, erros=[str(exc)],
+		)
+	return _redirect(f"/projetos/{rel.projeto_id}")
+
+
+# ---------- Agendar etapa ----------
+def _form_agendar(form) -> tuple[agendar.Horarios | None, date | None, bool, bool, list[str]]:
+	erros = []
+	dias = [d for d in form.getlist("dias") if d in recorrencia.DIAS]
+	hora = _hora_form(form, "hora")
+	minutos = _int(form, "minutos")
+	if not dias:
+		erros.append("escolha pelo menos um dia da semana")
+	if hora is None:
+		erros.append("informe o horário de início")
+	if not minutos or minutos < 10:
+		erros.append("a sessão precisa ter pelo menos 10 minutos")
+	h = agendar.Horarios(dias, hora, minutos) if not erros else None
+	# atrasadas: "nao" | "livres" (encaixa nos espaços livres) | "empurrar" (mantém a ordem, empurra as seguintes)
+	modo = form.get("atrasadas") or ("livres" if form.get("remarcar") == "on" else "nao")
+	return h, _data(form, "a_partir"), modo in ("livres", "empurrar"), modo == "empurrar", erros
+
+
+@router.get("/projetos/{projeto_id}/agendar", response_class=HTMLResponse)
+def pagina_agendar(request: Request, projeto_id: int, session: Session = Depends(get_session)):
+	p = api_projetos.obter(projeto_id, session)
+	h, _ = agendar.horarios_herdados(session, projeto_id)
+	f = {
+		"dias": h.dias if h else [],
+		"hora": h.hora.strftime("%H:%M") if h else "19:00",
+		"minutos": h.minutos if h else 60,
+		"a_partir": date.today().isoformat(),
+		"atrasadas": "livres",
+	}
+	return render(request, "agendar.html", session, aba="projetos", p=p, f=f, herdado=h)
+
+
+@router.post("/projetos/{projeto_id}/agendar/previa", response_class=HTMLResponse)
+async def previa_agendar(request: Request, projeto_id: int, session: Session = Depends(get_session)):
+	h, a_partir, remarcar, empurrar, erros = _form_agendar(await request.form())
+	if erros:
+		return render(request, "partials/agendar_previa.html", erros=erros)
+	ag = agendar.planejar(session, projeto_id, h, a_partir, remarcar, empurrar=empurrar)
+	return render(request, "partials/agendar_previa.html", ag=ag)
+
+
+@router.post("/projetos/{projeto_id}/agendar", response_class=HTMLResponse)
+async def confirmar_agendar(request: Request, projeto_id: int, session: Session = Depends(get_session)):
+	form = await request.form()
+	h, a_partir, remarcar, empurrar, erros = _form_agendar(form)
+	if erros:
+		p = api_projetos.obter(projeto_id, session)
+		f = {
+			"dias": form.getlist("dias"), "hora": form.get("hora"), "minutos": form.get("minutos"),
+			"a_partir": form.get("a_partir"), "atrasadas": form.get("atrasadas") or "livres",
+		}
+		return render(request, "agendar.html", session, aba="projetos", p=p, f=f, herdado=None, erros=erros)
+	ag = agendar.planejar(session, projeto_id, h, a_partir, remarcar, empurrar=empurrar)
+	_, destino = agendar.horarios_herdados(session, projeto_id)
+	agendar.aplicar(session, projeto_id, ag, guardar_em=destino)
+	return _redirect(f"/projetos/{projeto_id}")
+
+
+@router.post("/projetos/{projeto_id}/desagendar")
+def desagendar_web(projeto_id: int, session: Session = Depends(get_session)):
+	agendar.desagendar(session, projeto_id)
+	return _redirect(f"/projetos/{projeto_id}")
+
+
+def _sugestoes_agendar(session: Session) -> list[tuple[Projeto, Projeto, str]]:
+	"""(plano, etapa liberada, horários) para planos sequenciais com etapa ainda não agendada."""
+	sugestoes = []
+	planos = session.exec(select(Projeto).where(Projeto.sequencial == True, Projeto.agenda_dias.is_not(None))).all()  # noqa: E712
+	for pl in planos:
+		if pl.status != StatusProjeto.ativo:
+			continue
+		etapa = agendar.proxima_para_agendar(session, pl.id)
+		if etapa:
+			sugestoes.append((pl, etapa, agendar.Horarios.de_projeto(pl).texto()))
+	return sugestoes
+
+
+@router.post("/remarcar/{item_id}", response_class=HTMLResponse)
+def remarcar_item(request: Request, item_id: int, modo: str = "so", session: Session = Depends(get_session)):
+	"""Remarca uma tarefa atrasada nos horários de estudo do plano.
+	modo=so: só ela, no próximo espaço livre. modo=empurrar: ela e as seguintes da etapa,
+	redistribuídas mantendo a ordem."""
+	item = get_or_404(session, Item, item_id)
+	h = agendar.horarios_herdados(session, item.projeto_id)[0] if item.projeto_id else None
+	if h is None:  # sem horários guardados: abre a tela certa para escolher
+		destino = f"/projetos/{item.projeto_id}/agendar" if item.projeto_id else f"/itens/{item_id}"
+		resp = HTMLResponse("")
+		resp.headers["HX-Redirect"] = destino
+		return resp
+	empurrar = modo == "empurrar"
+	ag = agendar.planejar(
+		session, item.projeto_id, h, remarcar=True, empurrar=empurrar,
+		so_itens=None if empurrar else {item_id}, desde_item=item_id if empurrar else None,
+	)
+	if ag.encaixes:
+		primeiro = next((e for e in ag.encaixes if e.item.id == item_id), ag.encaixes[0])
+		titulo, quando = item.titulo, primeiro.inicio
+		movidas = sum(1 for e in ag.encaixes if e.item.id != item_id and e.item.inicio != e.inicio)
+		_, destino = agendar.horarios_herdados(session, item.projeto_id)
+		agendar.aplicar(session, item.projeto_id, ag, guardar_em=destino)
+		aviso = f"“{titulo}” remarcada para {_dia(quando)} às {_hora(quando)}"
+		if empurrar:
+			aviso += (
+				f" (+{movidas} seguinte{'s' if movidas > 1 else ''} empurrada{'s' if movidas > 1 else ''})"
+				if movidas else " (as seguintes já estavam depois, continuam no lugar)"
+			)
+	else:
+		aviso = "Não encontrei horário livre: " + "; ".join(ag.avisos or ["confira os horários do plano"])
+	ctx = _ctx_hoje(session, date.today())
+	return render(request, "partials/hoje_listas.html", session, aviso_remarcar=aviso, **ctx)

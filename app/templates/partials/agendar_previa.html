@@ -1,0 +1,38 @@
+{% from "_macros.html" import icone %}
+{% if erros %}
+<div class="erros" role="alert">{% for e in erros %}<p>{{ e }}</p>{% endfor %}</div>
+{% else %}
+<div class="previa">
+	<h3>Prévia — {{ ag.encaixes|length }} {{ "tarefa" if ag.encaixes|length == 1 else "tarefas" }} em {{ ag.por_dia()|length }} {{ "dia" if ag.por_dia()|length == 1 else "dias" }}</h3>
+	{% if ag.avisos %}<div class="avisos">{% for a in ag.avisos %}<p>⚠ {{ a }}</p>{% endfor %}</div>{% endif %}
+	{% if ag.encaixes %}
+	<div class="agenda-previa">
+		{% for d, encaixes in ag.por_dia() %}
+		<div class="ap-dia">
+			<h4>{{ d|dia }}</h4>
+			<ul>
+				{% for e in encaixes %}
+				<li>
+					<span class="ap-hora">{{ e.inicio|hora }}–{{ e.fim|hora }}</span>
+					<span class="ap-titulo">{{ e.item.titulo }}
+						{%- if e.caminho %} <small>{{ e.caminho }}</small>{% endif %}
+						{%- if e.item.inicio %} <span class="acao acao-atualizado">remarcada</span>{% endif %}
+						{%- if e.estourou %} <span class="acao acao-atualizado">passa da sessão</span>{% endif %}
+					</span>
+				</li>
+				{% endfor %}
+			</ul>
+		</div>
+		{% endfor %}
+	</div>
+	{% if ag.sobras %}
+	<details><summary class="dica">{{ ag.sobras|length }} sem horário</summary>
+		<ul class="dica">{% for i in ag.sobras %}<li>{{ i.titulo }}</li>{% endfor %}</ul>
+	</details>
+	{% endif %}
+	<div class="acoes">
+		<button class="btn">{{ icone("check", 16) }} Confirmar agendamento</button>
+	</div>
+	{% endif %}
+</div>
+{% endif %}
