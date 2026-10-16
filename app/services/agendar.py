@@ -229,3 +229,49 @@ def proxima_para_agendar(session: Session, projeto_id: int) -> Projeto | None:
 			return f
 		return None
 	return None
+
+
+# ---------------------------------------------------------------------------
+# Agendar sozinho a próxima etapa (planos sequenciais com agenda_auto)
+# ---------------------------------------------------------------------------
+_AVISOS: list[str] = []  # avisos para a interface (app de um usuário só: memória do processo basta)
+
+
+def consumir_avisos() -> list[str]:
+	avisos = _AVISOS[:]
+	_AVISOS.clear()
+	return avisos
+
+
+def ao_concluir(session: Session, item: Item) -> list[str]:
+	"""Chamado quando uma tarefa é concluída. Se isso completou uma etapa de um plano
+	sequencial com "agendar sozinho", agenda a etapa seguinte nos horários do plano."""
+	if not item.projeto_id or item.status != StatusItem.concluido:
+		return []
+	arv = Arvore.carregar(session)
+	cam = arv.caminho(item.projeto_id)  # raiz ... etapa do item
+	avisos = []
+	for i, plano in enumerate(cam[:-1] if len(cam) > 1 else []):
+		etapa = cam[i + 1]  # filho do plano no caminho do item
+		if not (plano.sequencial and plano.agenda_auto and plano.status == "ativo"):
+			continue
+		horarios = Horarios.de_projeto(plano)
+		if not horarios or not arv.concluido(etapa.id):
+			continue
+		proxima = proxima_para_agendar(session, plano.id)
+		if proxima is None:
+			continue
+		ag = planejar(session, proxima.id, horarios, remarcar=False)
+		if not ag.encaixes:
+			avisos.append(f"{plano.nome}: {proxima.nome} liberada, mas não encontrei horário livre para agendar")
+			continue
+		primeiro = ag.encaixes[0].inicio
+		aplicar(session, proxima.id, ag, guardar_em=plano.id)
+		dias = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"]
+		avisos.append(
+			f"{plano.nome}: {proxima.nome} agendada sozinha — {len(ag.encaixes)} tarefa(s) "
+			f"a partir de {dias[primeiro.weekday()]} {primeiro:%d/%m} às {primeiro:%H:%M}"
+		)
+		arv = Arvore.carregar(session)  # o banco mudou
+	_AVISOS.extend(avisos)
+	return avisos

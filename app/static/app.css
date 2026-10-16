@@ -191,7 +191,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ---------- Formulários ---------- */
 .formulario { display: flex; flex-direction: column; gap: 14px; max-width: 720px; }
 .formulario label, fieldset label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--fraco); flex: 1; min-width: 0; }
-.formulario input:not([type=checkbox]):not([type=color]), .formulario select, .formulario textarea, .area-linha input[name=nome] {
+.formulario input:not([type=checkbox]):not([type=radio]):not([type=color]), .formulario select, .formulario textarea, .area-linha input[name=nome] {
 	background: var(--sup); border: 1px solid var(--borda); border-radius: 10px; padding: 9px 11px; font-size: 16px; color: var(--texto); width: 100%;
 }
 .formulario input:focus, .formulario select:focus, .formulario textarea:focus, .area-linha input:focus { outline: 2px solid color-mix(in srgb, var(--acento) 60%, transparent); outline-offset: 1px; }
@@ -338,3 +338,11 @@ label.check input[type=radio] { accent-color: var(--acento); }
 .menu button small { display: block; color: var(--fraco); font-size: 12px; }
 .menu button:hover { border-color: var(--acento); }
 .botoes-linha { display: flex; gap: 6px; align-items: center; }
+
+/* Avisos (toasts) */
+.toasts { position: fixed; z-index: 30; left: 50%; transform: translateX(-50%); bottom: calc(var(--abas) + 12px + env(safe-area-inset-bottom));
+	display: flex; flex-direction: column; gap: 8px; width: min(92vw, 520px); pointer-events: none; }
+@media (min-width: 760px) { .toasts { bottom: 20px; } }
+.toast { pointer-events: auto; background: var(--sup2); border: 1px solid color-mix(in srgb, var(--acento) 45%, var(--borda));
+	border-radius: 10px; padding: 10px 14px; font-size: 14px; box-shadow: 0 8px 24px rgb(0 0 0 / .45); animation: toast-in .2s ease-out; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }

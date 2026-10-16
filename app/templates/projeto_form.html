@@ -42,6 +42,10 @@
 		<label class="check"><input type="checkbox" name="sequencial" {{ "checked" if f.sequencial }}>
 			<span>Sequencial<small>os subprojetos liberam um de cada vez, na ordem (ex.: Semana 1, 2, 3…)</small></span></label>
 	</div>
+	{% if projeto and projeto.agenda_dias %}
+	<label class="check"><input type="checkbox" name="agenda_auto" {{ "checked" if f.agenda_auto }}>
+		<span>Agendar a próxima etapa sozinho<small>vale se for sequencial; usa os horários guardados ({{ projeto.agenda_dias|replace("MO","seg")|replace("TU","ter")|replace("WE","qua")|replace("TH","qui")|replace("FR","sex")|replace("SA","sáb")|replace("SU","dom") }} às {{ projeto.agenda_hora }}, {{ projeto.agenda_minutos }} min)</small></span></label>
+	{% endif %}
 	<p class="dica">Ordem 0 = ordem natural pelo nome ("Aula 2" antes de "Aula 10"). Números maiores vão para o fim.</p>
 	<label>Página principal <input name="link" type="url" inputmode="url" placeholder="https://…" value="{{ f.link or '' }}"></label>
 

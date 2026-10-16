@@ -68,6 +68,7 @@ class ProjetoIn(ProgressoIn):
 	agenda_dias: str | None = Field(default=None, pattern=r"^(MO|TU|WE|TH|FR|SA|SU)(,(MO|TU|WE|TH|FR|SA|SU))*$")
 	agenda_hora: str | None = Field(default=None, pattern=r"^\d{2}:\d{2}$")
 	agenda_minutos: int | None = Field(default=None, ge=10, le=12 * 60)
+	agenda_auto: bool = False
 	status: StatusProjeto = StatusProjeto.ativo
 	link: str | None = None
 	notas: str | None = None
@@ -80,6 +81,7 @@ class ProjetoUpdate(ProgressoIn):
 	agenda_dias: str | None = Field(default=None, pattern=r"^(MO|TU|WE|TH|FR|SA|SU)(,(MO|TU|WE|TH|FR|SA|SU))*$")
 	agenda_hora: str | None = Field(default=None, pattern=r"^\d{2}:\d{2}$")
 	agenda_minutos: int | None = Field(default=None, ge=10, le=12 * 60)
+	agenda_auto: bool | None = None
 	area_id: int | None = None
 	ordem: int | None = None
 	sequencial: bool | None = None
@@ -101,6 +103,7 @@ class ProjetoOut(ProgressoOut):
 	agenda_dias: str | None = None  # horários de estudo (Agendar)
 	agenda_hora: str | None = None
 	agenda_minutos: int | None = None
+	agenda_auto: bool = False
 	area_id: int
 	prioridade: Prioridade
 	status: StatusProjeto
@@ -119,6 +122,7 @@ class AgendarIn(BaseModel):
 	remarcar: bool = True  # inclui tarefas agendadas no passado e não feitas
 	empurrar: bool = False  # redistribui também as já marcadas no futuro, mantendo a ordem
 	simular: bool = False  # True = só prévia
+	auto: bool | None = None  # liga/desliga "agendar a próxima etapa sozinho" no plano
 
 	@field_validator("dias")
 	@classmethod

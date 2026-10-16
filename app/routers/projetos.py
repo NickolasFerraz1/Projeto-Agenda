@@ -130,6 +130,11 @@ def agendar(projeto_id: int, dados: AgendarIn, session: Session = Depends(get_se
 		_, destino = svc_agendar.horarios_herdados(session, projeto_id)
 		svc_agendar.aplicar(session, projeto_id, ag, guardar_em=destino)
 		resposta["aplicado"] = True
+	if dados.auto is not None and not dados.simular:
+		_, destino = svc_agendar.horarios_herdados(session, projeto_id)
+		plano = session.get(Projeto, destino)
+		plano.agenda_auto = dados.auto
+		session.commit()
 	return resposta
 
 

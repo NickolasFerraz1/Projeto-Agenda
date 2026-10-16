@@ -7,7 +7,7 @@ from app.db import get_session
 from app.models import Area, Item, Ocorrencia, Projeto, StatusItem, TipoItem
 from app.routers.common import apply_update, check_fk, get_or_404, item_out, replace_links
 from app.schemas import ItemIn, ItemOut, ItemUpdate, OcorrenciaIn, OcorrenciaOut
-from app.services import recorrencia
+from app.services import agendar, recorrencia
 
 router = APIRouter(prefix="/api/itens", tags=["itens"])
 
@@ -74,6 +74,7 @@ def obter(item_id: int, session: Session = Depends(get_session)):
 @router.patch("/{item_id}", response_model=ItemOut)
 def atualizar(item_id: int, dados: ItemUpdate, session: Session = Depends(get_session)):
 	item = get_or_404(session, Item, item_id)
+	estava_concluido = item.status == StatusItem.concluido
 	campos = dados.model_dump(exclude_unset=True, exclude={"links"})
 	check_fk(session, Projeto, campos.get("projeto_id"), "projeto_id")
 	check_fk(session, Area, campos.get("area_id"), "area_id")
@@ -87,6 +88,8 @@ def atualizar(item_id: int, dados: ItemUpdate, session: Session = Depends(get_se
 		replace_links(session, dados.links, item_id=item.id)
 	session.commit()
 	session.refresh(item)
+	if not estava_concluido and item.status == StatusItem.concluido:
+		agendar.ao_concluir(session, item)  # plano sequencial: pode agendar a próxima etapa
 	return item_out(session, item)
 
 

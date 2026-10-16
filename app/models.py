@@ -86,6 +86,7 @@ class Projeto(ProgressoCampos, Timestamps, table=True):
 	agenda_dias: str | None = None  # "MO,WE,FR"
 	agenda_hora: str | None = None  # "19:00"
 	agenda_minutos: int | None = None  # duração de cada sessão
+	agenda_auto: bool = False  # sequencial: agenda sozinho a próxima etapa quando a anterior termina
 	area_id: int = Field(foreign_key="area.id", index=True)
 	prioridade: Prioridade = Prioridade.media
 	status: StatusProjeto = StatusProjeto.ativo

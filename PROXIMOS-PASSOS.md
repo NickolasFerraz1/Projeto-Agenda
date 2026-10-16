@@ -40,8 +40,9 @@ uvicorn app.main:app --reload --port 8090
 - **Desagendar**: tarefas em aberto de hoje em diante voltam para "sem data".
 - **Atrasadas** (2 modos): *remarcar nos espaços livres* (tarefas independentes: só a atrasada muda) ou *remarcar e empurrar as seguintes* (dependentes: redistribui a etapa mantendo a ordem).
 - Na **Hoje**, cada tarefa atrasada de um projeto tem o botão 📅 → "Só esta" / "Esta e as seguintes", usando os horários guardados do plano.
+- **Agendar sozinho** (planos sequenciais): ao concluir a última tarefa de uma etapa, a próxima é agendada nos horários do plano e aparece um aviso. Liga na tela Agendar ("Agendar as próximas etapas sozinho") ou em Editar projeto. Desligado: só o aviso com botão "Agendar".
 - Prévia da importação: ✓ só nas concluídas, ○ nas abertas e duração por tarefa/etapa.
-- 78 testes passando.
+- 82 testes passando.
 
 ## Depois
 1. **5.3 Deploy no Pi** (próxima): venv, serviço `systemd` (porta 8090), Tailscale no Pi/celular/PC, `tailscale serve` (HTTPS → PWA instalável no celular), backup diário do SQLite (`sqlite3 .backup`, 14 dias).

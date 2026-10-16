@@ -119,7 +119,19 @@ def render(request: Request, nome: str, session: Session | None = None, **ctx) -
 	if session is not None:
 		ctx.setdefault("areas", session.exec(select(Area).order_by(Area.nome)).all())
 	ctx.setdefault("hoje", date.today())
+	if not nome.startswith("partials/"):
+		ctx.setdefault("avisos_globais", agendar.consumir_avisos())
 	return templates.TemplateResponse(request, nome, ctx)
+
+
+def _com_avisos(resp: HTMLResponse) -> HTMLResponse:
+	"""Respostas parciais (HTMX): avisos vão no cabeçalho HX-Trigger e viram um toast."""
+	avisos = agendar.consumir_avisos()
+	if avisos:
+		import json
+
+		resp.headers["HX-Trigger"] = json.dumps({"aviso": avisos}, ensure_ascii=True)
+	return resp
 
 
 def _voltar(destino: str | None, padrao: str = "/") -> str:
@@ -284,9 +296,14 @@ def alternar(
 		item.atualizado_em = datetime.now()
 	session.commit()
 	session.refresh(item)
+	if not item.recorrencia and item.status == StatusItem.concluido:
+		agendar.ao_concluir(session, item)
+		session.refresh(item)
 	if tipo in ("agendado", "prazo") and dia:
-		return render(request, "partials/linha_entrada.html", e=_linha_entrada(session, item, tipo, dia))
-	return render(request, "partials/linha_item.html", session, i=item_out(session, item), caminhos=_caminhos(session, rel), rel=rel)
+		return _com_avisos(render(request, "partials/linha_entrada.html", e=_linha_entrada(session, item, tipo, dia)))
+	return _com_avisos(
+		render(request, "partials/linha_item.html", session, i=item_out(session, item), caminhos=_caminhos(session, rel), rel=rel)
+	)
 
 
 @router.post("/incrementar/{item_id}", response_class=HTMLResponse)
@@ -305,7 +322,12 @@ def incrementar(request: Request, item_id: int, rel: int | None = None, session:
 	item.atualizado_em = datetime.now()
 	session.commit()
 	session.refresh(item)
-	return render(request, "partials/linha_item.html", session, i=item_out(session, item), caminhos=_caminhos(session, rel), rel=rel)
+	if item.status == StatusItem.concluido:
+		agendar.ao_concluir(session, item)
+		session.refresh(item)
+	return _com_avisos(
+		render(request, "partials/linha_item.html", session, i=item_out(session, item), caminhos=_caminhos(session, rel), rel=rel)
+	)
 
 
 @router.post("/markdown", response_class=HTMLResponse)
@@ -408,6 +430,7 @@ def _projeto_payload(form) -> dict:
 		"status": form.get("status") or "ativo",
 		"ordem": _int(form, "ordem") or 0,
 		"sequencial": form.get("sequencial") == "on",
+		"agenda_auto": form.get("agenda_auto") == "on",
 		"link": _texto(form, "link"),
 		"notas": _texto(form, "notas"),
 		"links": _links_form(form),
@@ -749,15 +772,17 @@ def _form_agendar(form) -> tuple[agendar.Horarios | None, date | None, bool, boo
 @router.get("/projetos/{projeto_id}/agendar", response_class=HTMLResponse)
 def pagina_agendar(request: Request, projeto_id: int, session: Session = Depends(get_session)):
 	p = api_projetos.obter(projeto_id, session)
-	h, _ = agendar.horarios_herdados(session, projeto_id)
+	h, destino = agendar.horarios_herdados(session, projeto_id)
+	plano_destino = session.get(Projeto, destino)
 	f = {
 		"dias": h.dias if h else [],
 		"hora": h.hora.strftime("%H:%M") if h else "19:00",
 		"minutos": h.minutos if h else 60,
 		"a_partir": date.today().isoformat(),
 		"atrasadas": "livres",
+		"auto": plano_destino.agenda_auto,
 	}
-	return render(request, "agendar.html", session, aba="projetos", p=p, f=f, herdado=h)
+	return render(request, "agendar.html", session, aba="projetos", p=p, f=f, herdado=h, plano_destino=plano_destino)
 
 
 @router.post("/projetos/{projeto_id}/agendar/previa", response_class=HTMLResponse)
@@ -779,10 +804,15 @@ async def confirmar_agendar(request: Request, projeto_id: int, session: Session 
 			"dias": form.getlist("dias"), "hora": form.get("hora"), "minutos": form.get("minutos"),
 			"a_partir": form.get("a_partir"), "atrasadas": form.get("atrasadas") or "livres",
 		}
-		return render(request, "agendar.html", session, aba="projetos", p=p, f=f, herdado=None, erros=erros)
+		plano_destino = session.get(Projeto, agendar.horarios_herdados(session, projeto_id)[1])
+		return render(request, "agendar.html", session, aba="projetos", p=p, f=f, herdado=None, plano_destino=plano_destino, erros=erros)
 	ag = agendar.planejar(session, projeto_id, h, a_partir, remarcar, empurrar=empurrar)
 	_, destino = agendar.horarios_herdados(session, projeto_id)
 	agendar.aplicar(session, projeto_id, ag, guardar_em=destino)
+	plano_destino = session.get(Projeto, destino)
+	if plano_destino.sequencial:
+		plano_destino.agenda_auto = form.get("auto") == "on"
+		session.commit()
 	return _redirect(f"/projetos/{projeto_id}")
 
 

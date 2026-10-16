@@ -40,6 +40,8 @@ Páginas renderizadas no servidor (Jinja2) com HTMX e Alpine.js, sem passo de bu
   duração estimada quando todos os filhos têm duração. Item com "3 de 5" conta 60%.
 - **Sequencial**: os subprojetos liberam um de cada vez (Semana 1 → 2 → 3). Itens de etapas
   travadas e de projetos pausados/arquivados não aparecem nas pendências.
+- **Agendar etapa**: distribui as tarefas nos horários de estudo; num plano sequencial, pode
+  **agendar sozinho** a próxima etapa quando a anterior termina (aviso na tela).
 - **+1** nos itens com progresso por quantidade; ao chegar no total, o item é concluído.
 - **Notas em Markdown**, com pré-visualização.
 - Itens recorrentes: marcar na agenda vale **só para aquele dia** (registro de ocorrência).

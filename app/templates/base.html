@@ -28,6 +28,10 @@
 		<a href="/itens/novo" class="btn nav-novo">{{ icone("mais", 16) }} Novo</a>
 	</header>
 
+	<div id="toasts" class="toasts" aria-live="polite">
+		{% for a in avisos_globais or [] %}<div class="toast">{{ a }}</div>{% endfor %}
+	</div>
+
 	<main class="conteudo">
 		{% block conteudo %}{% endblock %}
 	</main>
@@ -40,11 +44,25 @@
 	</nav>
 
 	<script>
-		if ("serviceWorker" in navigator) {
-			window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+		// Com hx-boost este script roda de novo a cada navegação: os ouvintes só são criados uma vez
+		if (!window.__agendaIniciado) {
+			window.__agendaIniciado = true;
+			if ("serviceWorker" in navigator) {
+				window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+			}
+			// Avisos (toasts) vindos do HTMX (cabeçalho HX-Trigger: {"aviso": [...]})
+			window.mostrarAviso = (texto) => {
+				const t = document.createElement("div");
+				t.className = "toast"; t.textContent = texto;
+				document.getElementById("toasts").appendChild(t);
+				setTimeout(() => t.remove(), 9000);
+			};
+			document.body.addEventListener("aviso", (e) => [].concat(e.detail.value || []).forEach(window.mostrarAviso));
+			// Sem rede numa navegação do HTMX: mostra a página "sem conexão" (servida pelo cache)
+			document.addEventListener("htmx:sendError", () => { location.href = "/offline"; });
 		}
-		// Sem rede numa navegação do HTMX: mostra a página "sem conexão" (servida pelo cache)
-		document.addEventListener("htmx:sendError", () => { location.href = "/offline"; });
+		// Avisos que vieram com a página: somem sozinhos
+		document.querySelectorAll("#toasts .toast").forEach((t) => setTimeout(() => t.remove(), 9000));
 	</script>
 </body>
 </html>

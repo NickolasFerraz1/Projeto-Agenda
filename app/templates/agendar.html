@@ -35,6 +35,10 @@
 			<label class="check"><input type="radio" name="atrasadas" value="nao" {{ "checked" if f.atrasadas == "nao" }}>
 				<span>Não mexer nas atrasadas<small>agenda só as tarefas sem data</small></span></label>
 		</div>
+		{% if plano_destino and plano_destino.sequencial %}
+		<label class="check"><input type="checkbox" name="auto" {{ "checked" if f.auto }}>
+			<span>Agendar as próximas etapas sozinho<small>quando uma etapa de “{{ plano_destino.nome }}” terminar, a seguinte é agendada nestes horários automaticamente</small></span></label>
+		{% endif %}
 	</fieldset>
 
 	<div class="acoes">

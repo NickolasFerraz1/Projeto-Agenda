@@ -185,3 +185,51 @@ def test_hoje_mostra_menu_remarcar_nos_atrasados(client, area_id):
 	client.patch(f"/api/itens/{ids[0]}", json={"inicio": "2020-01-06T19:00:00", "fim": "2020-01-06T19:30:00"})
 	html = client.get("/").text
 	assert f'/remarcar/{ids[0]}?modo=empurrar' in html and "Esta e as seguintes" in html
+
+
+def _plano_auto(client, area_id, auto=True):
+	piano, s1, s2, ids = _plano(client, area_id)
+	client.patch(f"/api/projetos/{piano['id']}", json={"agenda_dias": "MO,WE,FR", "agenda_hora": "19:00", "agenda_minutos": 60, "agenda_auto": auto})
+	return piano, s1, s2, ids
+
+
+def test_auto_agenda_proxima_etapa_ao_concluir(client, area_id):
+	piano, s1, s2, ids = _plano_auto(client, area_id)
+	for titulo in ("Notas", "Cinco dedos", "Revisão"):
+		client.patch(f"/api/itens/{ids[titulo]}", json={"status": "concluido"})
+	acordes = client.get(f"/api/projetos/{s2['id']}/itens").json()[0]
+	assert acordes["inicio"] is None  # Semana 1 ainda não terminou
+	client.patch(f"/api/itens/{ids['Ritmo']}", json={"status": "concluido"})  # completa a Semana 1
+	acordes = client.get(f"/api/projetos/{s2['id']}/itens").json()[0]
+	assert acordes["inicio"] is not None and acordes["inicio"].endswith("19:00:00")
+	# o aviso aparece uma vez na próxima página
+	html = client.get("/").text
+	assert "Semana 2 agendada sozinha" in html
+	assert "Semana 2 agendada sozinha" not in client.get("/").text
+
+
+def test_sem_auto_so_sugere(client, area_id):
+	piano, s1, s2, ids = _plano_auto(client, area_id, auto=False)
+	for i in ids.values():
+		client.patch(f"/api/itens/{i}", json={"status": "concluido"})
+	assert client.get(f"/api/projetos/{s2['id']}/itens").json()[0]["inicio"] is None
+	assert "Semana 2 liberada e ainda sem data" in client.get("/").text
+
+
+def test_auto_pelo_circulo_manda_toast_no_htmx(client, area_id):
+	piano, s1, s2, ids = _plano_auto(client, area_id)
+	for titulo in ("Notas", "Cinco dedos", "Revisão"):
+		client.patch(f"/api/itens/{ids[titulo]}", json={"status": "concluido"})
+	r = client.post(f"/alternar/{ids['Ritmo']}")
+	assert "Semana 2 agendada sozinha" in r.headers.get("hx-trigger", "").encode().decode("unicode_escape")
+
+
+def test_auto_ligado_pela_tela_agendar(client, area_id):
+	piano, s1, s2, ids = _plano(client, area_id)
+	html = client.get(f"/projetos/{s1['id']}/agendar").text
+	assert "Agendar as próximas etapas sozinho" in html
+	dados = {"dias": ["MO"], "hora": "19:00", "minutos": "60", "a_partir": "2030-01-07", "atrasadas": "livres", "auto": "on"}
+	client.post(f"/projetos/{s1['id']}/agendar", data=dados)
+	assert client.get(f"/api/projetos/{piano['id']}").json()["agenda_auto"] is True
+	client.post(f"/projetos/{s1['id']}/agendar", data={k: v for k, v in dados.items() if k != "auto"})
+	assert client.get(f"/api/projetos/{piano['id']}").json()["agenda_auto"] is False

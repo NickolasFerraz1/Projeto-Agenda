@@ -166,7 +166,8 @@ tarefas/
    - **5.2.3** ✅: agendar etapa: tarefas da etapa liberada encaixadas nos horários de estudo
      (dias, hora, duração da sessão), na ordem do plano, desviando do que já está na agenda;
      atrasadas: remarcar nos espaços livres ou empurrar as seguintes (mantendo a ordem), também
-     direto na Hoje (botão 📅 na tarefa atrasada); desagendar; horários guardados no plano e sugestão quando a próxima
+     direto na Hoje (botão 📅 na tarefa atrasada); desagendar; "agendar sozinho" a próxima etapa
+     quando a anterior termina (planos sequenciais, opcional); horários guardados no plano e sugestão quando a próxima
      etapa libera (na Hoje e no projeto).
 3. **5.3 Deploy no Pi**: serviço systemd, Tailscale, `tailscale serve`, backup.
 4. **5.4 Google Agenda**: conta de serviço, agenda dedicada, sincronização.
