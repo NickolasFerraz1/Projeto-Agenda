@@ -1,0 +1,89 @@
+{# Ícones (SVG inline, herdam a cor do texto) #}
+{% macro icone(nome, tam=18) -%}
+<svg class="ic" width="{{ tam }}" height="{{ tam }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if nome == "check" %}<path d="M20 6 9 17l-5-5"/>
+{%- elif nome == "repete" %}<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>
+{%- elif nome == "mais" %}<path d="M12 5v14M5 12h14"/>
+{%- elif nome == "esq" %}<path d="m15 18-6-6 6-6"/>
+{%- elif nome == "dir" %}<path d="m9 18 6-6-6-6"/>
+{%- elif nome == "link" %}<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+{%- elif nome == "lixo" %}<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+{%- elif nome == "hoje" %}<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+{%- elif nome == "semana" %}<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+{%- elif nome == "projetos" %}<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>
+{%- elif nome == "areas" %}<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+{%- elif nome == "cadeado" %}<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+{%- elif nome == "play" %}<path d="m7 4 13 8-13 8Z"/>
+{%- elif nome == "prazo" %}<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+{%- endif %}
+</svg>
+{%- endmacro %}
+
+{% macro prioridade(p) -%}
+{%- set p = p|v -%}
+{%- if p != "media" %}<span class="prio prio-{{ p }}">{{ p|rotulo("prioridade") }}</span>{% endif -%}
+{%- endmacro %}
+
+{% macro barra(pct, com_pct=True) -%}
+{%- if pct is not none %}<span class="barra" title="{{ pct|num }}%"><span style="width: {{ [pct, 100]|min }}%"></span></span>{% if com_pct %}<span class="pct">{{ pct|round|int }}%</span>{% endif %}{% endif -%}
+{%- endmacro %}
+
+{% macro area_tag(area) -%}
+<span class="area" style="--cor: {{ area.cor }}">{{ area.nome }}</span>
+{%- endmacro %}
+
+{% macro erros_box(erros) -%}
+{%- if erros %}<div class="erros" role="alert">{% for e in erros %}<p>{{ e }}</p>{% endfor %}</div>{% endif -%}
+{%- endmacro %}
+
+{# Lista dinâmica de links (Alpine) #}
+{% macro links_editor(links) -%}
+{#- aspas simples no atributo: o tojson usa aspas duplas e escapa as simples -#}
+<fieldset class="links" x-data='{ links: {{ (links or [])|tojson }} }'>
+	<legend>Links</legend>
+	<template x-for="(l, n) in links" :key="n">
+		<div class="link-linha">
+			<input name="link_rotulo" placeholder="Rótulo (ex.: Aula 12)" x-model="l.rotulo">
+			<input name="link_url" type="url" inputmode="url" placeholder="https://…" x-model="l.url">
+			<button type="button" class="btn-icone" @click="links.splice(n, 1)" aria-label="Remover link">{{ icone("lixo", 16) }}</button>
+		</div>
+	</template>
+	<button type="button" class="btn-sec" @click="links.push({ rotulo: '', url: '' })">{{ icone("mais", 16) }} Adicionar link</button>
+</fieldset>
+{%- endmacro %}
+
+{# Campos de progresso (Alpine mostra só os do modo escolhido) #}
+{% macro progresso_campos(f, com_itens=False) -%}
+<fieldset x-data="{ modo: '{{ f.progresso_modo or 'nenhum' }}' }">
+	<legend>Progresso</legend>
+	<label>Modo
+		<select name="progresso_modo" x-model="modo">
+			{% for m in MODOS if com_itens or m != "itens" %}<option value="{{ m }}" {{ "selected" if (f.progresso_modo or "nenhum") == m }}>{{ m|rotulo("progresso") }}</option>{% endfor %}
+		</select>
+	</label>
+	<div class="linha" x-show="modo === 'manual'" x-cloak>
+		<label>Percentual <input name="progresso_manual" type="number" min="0" max="100" step="any" inputmode="decimal" value="{{ f.progresso_manual|num|replace(',', '.') }}"></label>
+	</div>
+	<div class="linha" x-show="modo === 'quantidade'" x-cloak>
+		<label>Feito <input name="progresso_atual" type="number" min="0" step="any" inputmode="decimal" value="{{ f.progresso_atual|num|replace(',', '.') }}"></label>
+		<label>Total <input name="progresso_total" type="number" min="0" step="any" inputmode="decimal" value="{{ f.progresso_total|num|replace(',', '.') }}"></label>
+		<label>Unidade <input name="progresso_unidade" placeholder="h, aulas…" maxlength="20" value="{{ f.progresso_unidade or '' }}"></label>
+	</div>
+</fieldset>
+{%- endmacro %}
+
+{# Notas em Markdown, com pré-visualização renderizada no servidor #}
+{% macro notas_editor(notas) -%}
+<div class="notas-editor" x-data="{ aba: 'escrever' }">
+	<div class="notas-topo">
+		<span class="rotulo">Notas <small>(Markdown)</small></span>
+		<span class="abas-mini">
+			<button type="button" :class="aba === 'escrever' && 'on'" @click="aba = 'escrever'">Escrever</button>
+			<button type="button" :class="aba === 'ver' && 'on'" @click="aba = 'ver'"
+				hx-post="/markdown" hx-include="closest .notas-editor" hx-target="next .notas-previa" hx-trigger="click">Visualizar</button>
+		</span>
+	</div>
+	<textarea name="notas" rows="6" x-show="aba === 'escrever'" placeholder="**negrito**, - listas, [links](https://…)">{{ notas or '' }}</textarea>
+	<div class="notas md notas-previa" x-show="aba === 'ver'" x-cloak hx-boost="false"></div>
+</div>
+{%- endmacro %}

@@ -1,0 +1,50 @@
+{% from "_macros.html" import icone %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<meta name="theme-color" content="#0d0e12">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<title>{% block titulo %}Agenda{% endblock %}</title>
+	<link rel="manifest" href="/manifest.webmanifest">
+	<link rel="icon" href="/static/icons/icon-192.png?v={{ VERSAO }}" type="image/png">
+	<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png?v={{ VERSAO }}">
+	<link rel="stylesheet" href="/static/app.css?v={{ VERSAO }}">
+	<script src="/static/vendor/htmx-2.0.4.min.js?v={{ VERSAO }}" defer></script>
+	<script src="/static/vendor/alpine-3.14.8.min.js?v={{ VERSAO }}" defer></script>
+</head>
+{% set aba = aba|default("") %}
+<body hx-boost="true">
+	<header class="topo">
+		<a href="/" class="marca">Agenda</a>
+		<nav class="nav-topo">
+			<a href="/" class="{{ 'ativo' if aba == 'hoje' }}">Hoje</a>
+			<a href="/semana" class="{{ 'ativo' if aba == 'semana' }}">Semana</a>
+			<a href="/projetos" class="{{ 'ativo' if aba == 'projetos' }}">Projetos</a>
+		</nav>
+		<a href="/areas" class="btn-icone {{ 'ativo' if aba == 'areas' }}" aria-label="Áreas">{{ icone("areas", 20) }}</a>
+		<a href="/itens/novo" class="btn nav-novo">{{ icone("mais", 16) }} Novo</a>
+	</header>
+
+	<main class="conteudo">
+		{% block conteudo %}{% endblock %}
+	</main>
+
+	<nav class="abas" aria-label="Navegação">
+		<a href="/" class="{{ 'ativo' if aba == 'hoje' }}">{{ icone("hoje", 22) }}<span>Hoje</span></a>
+		<a href="/semana" class="{{ 'ativo' if aba == 'semana' }}">{{ icone("semana", 22) }}<span>Semana</span></a>
+		<a href="/projetos" class="{{ 'ativo' if aba == 'projetos' }}">{{ icone("projetos", 22) }}<span>Projetos</span></a>
+		<a href="/itens/novo" class="aba-novo">{{ icone("mais", 22) }}<span>Novo</span></a>
+	</nav>
+
+	<script>
+		if ("serviceWorker" in navigator) {
+			window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+		}
+		// Sem rede numa navegação do HTMX: mostra a página "sem conexão" (servida pelo cache)
+		document.addEventListener("htmx:sendError", () => { location.href = "/offline"; });
+	</script>
+</body>
+</html>

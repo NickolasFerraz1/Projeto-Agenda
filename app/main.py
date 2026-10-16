@@ -2,9 +2,10 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
-from app import db
-from app.routers import agenda, areas, itens, projetos
+from app import config, db
+from app.routers import agenda, areas, itens, projetos, web
 
 
 @asynccontextmanager
@@ -15,11 +16,13 @@ async def lifespan(app: FastAPI):
 	yield
 
 
-app = FastAPI(title="Projeto Agenda", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Projeto Agenda", version="0.2.0", lifespan=lifespan)
 app.include_router(areas.router)
 app.include_router(projetos.router)
 app.include_router(itens.router)
 app.include_router(agenda.router)
+app.include_router(web.router)
+app.mount("/static", StaticFiles(directory=config.ROOT / "app" / "static"), name="static")
 
 
 @app.get("/api/saude", tags=["sistema"])

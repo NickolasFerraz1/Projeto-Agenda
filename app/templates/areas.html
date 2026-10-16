@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icone, erros_box %}
+{% set aba = "areas" %}
+{% block titulo %}Áreas · Agenda{% endblock %}
+{% block conteudo %}
+<h1 class="titulo-pagina">Áreas</h1>
+<p class="dica">As cores aparecem no app e no espelho. Uma área só pode ser excluída quando nenhum projeto ou item a usa.</p>
+
+{{ erros_box(erros) }}
+
+<ul class="lista-areas">
+	{% for a in areas %}
+	<li>
+		<form method="post" action="/areas/{{ a.id }}" class="area-linha">
+			<input type="color" name="cor" value="{{ a.cor }}" aria-label="Cor de {{ a.nome }}">
+			<input name="nome" value="{{ a.nome }}" required maxlength="40" aria-label="Nome">
+			<button class="btn-sec">Salvar</button>
+		</form>
+		<form method="post" action="/areas/{{ a.id }}/excluir" hx-confirm="Excluir a área “{{ a.nome }}”?">
+			<button class="btn-icone" aria-label="Excluir {{ a.nome }}">{{ icone("lixo", 16) }}</button>
+		</form>
+	</li>
+	{% endfor %}
+</ul>
+
+<h2 class="subtitulo">Nova área</h2>
+<form method="post" action="/areas" class="area-linha">
+	<input type="color" name="cor" value="#9aa0a6" aria-label="Cor">
+	<input name="nome" required maxlength="40" placeholder="Saúde, Finanças…" aria-label="Nome">
+	<button class="btn">{{ icone("mais", 16) }} Criar</button>
+</form>
+{% endblock %}

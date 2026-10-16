@@ -14,8 +14,38 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8090
 ```
 
+- Interface (app): http://localhost:8090
 - Documentação interativa da API: http://localhost:8090/docs
 - Banco: `data/agenda.db` (criado no primeiro uso, fora do Git). Outro caminho: variável `AGENDA_DB`.
+  Colunas novas dos modelos são acrescentadas sozinhas na inicialização (`db._migrar_colunas`).
+
+## Interface (PWA)
+
+Páginas renderizadas no servidor (Jinja2) com HTMX e Alpine.js, sem passo de build
+(os dois ficam em `app/static/vendor/`).
+
+| Tela | Rota | O que tem |
+|---|---|---|
+| Hoje | `/` | captura rápida, agenda do dia, atrasados e pendências; toque no círculo marca como feito |
+| Semana | `/semana` | 7 dias (seg–dom), navegação entre semanas, "+" cria item no dia |
+| Projetos | `/projetos` | cartões com progresso; detalhe com links, notas e itens |
+| Item | `/itens/{id}`, `/itens/novo` | edição completa: quando, repetição, prazo, progresso, links, notas |
+| Áreas | `/areas` | nome e cor de cada área |
+
+- **Projetos em níveis** (Pós FIAP › Fase 3 › Bloco › aulas): cada projeto pode ter subprojetos.
+  Subprojeto herda área e prioridade do pai. Excluir um projeto sobe os filhos um nível.
+- **Progresso automático** (padrão dos projetos): média dos itens e subprojetos; ponderada pela
+  duração estimada quando todos os filhos têm duração. Item com "3 de 5" conta 60%.
+- **Sequencial**: os subprojetos liberam um de cada vez (Semana 1 → 2 → 3). Itens de etapas
+  travadas e de projetos pausados/arquivados não aparecem nas pendências.
+- **+1** nos itens com progresso por quantidade; ao chegar no total, o item é concluído.
+- **Notas em Markdown**, com pré-visualização.
+- Itens recorrentes: marcar na agenda vale **só para aquele dia** (registro de ocorrência).
+- Repetição por presets (todo dia, dias úteis, dias da semana, todo mês, até uma data) ou RRULE personalizada.
+- **Instalar no celular**: abrir o app no navegador → "Adicionar à tela de início". O service worker
+  exige HTTPS (no Pi, via `tailscale serve`) ou `localhost`.
+- Mudou CSS/JS/ícones? Incremente `ASSET_VERSION` em `app/config.py` para renovar o cache do PWA.
+- Ícones: `python scripts/gerar_icones.py` (precisa de `pillow`).
 
 ## Testes
 
@@ -29,7 +59,7 @@ pytest -q
 |---|---|---|
 | GET/POST | `/api/areas` | listar / criar áreas |
 | PATCH/DELETE | `/api/areas/{id}` | editar / excluir (só se não estiver em uso) |
-| GET/POST | `/api/projetos` | listar (filtros `area_id`, `status`) / criar |
+| GET/POST | `/api/projetos` | listar (filtros `area_id`, `status`, `pai_id`, `raiz=true`) / criar (`pai_id` = subprojeto) |
 | GET/PATCH/DELETE | `/api/projetos/{id}` | obter / editar / excluir (itens ficam sem projeto) |
 | GET | `/api/projetos/{id}/itens` | itens do projeto |
 | GET/POST | `/api/itens` | listar (filtros `projeto_id`, `area_id`, `status`, `tipo`, `sem_data`) / criar |

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icone, erros_box, links_editor, progresso_campos, notas_editor %}
+{% block titulo %}{{ "Editar item" if item else "Novo item" }} · Agenda{% endblock %}
+{% block conteudo %}
+<div class="cabecalho-pagina">
+	<a class="btn-icone" href="{{ voltar }}" aria-label="Voltar">{{ icone("esq", 20) }}</a>
+	<h1 class="titulo-pagina">{{ "Editar item" if item else "Novo item" }}</h1>
+</div>
+
+{{ erros_box(erros) }}
+
+<form method="post" class="formulario"
+	x-data="{ data: '{{ f.data or '' }}', freq: '{{ f.rep_freq or '' }}' }">
+	<input type="hidden" name="voltar" value="{{ voltar }}">
+
+	<label>Título <input name="titulo" required maxlength="200" value="{{ f.titulo or '' }}" {{ "autofocus" if not item }}></label>
+
+	<div class="linha">
+		<label>Tipo
+			<select name="tipo">
+				{% for t in TIPOS %}<option value="{{ t }}" {{ "selected" if (f.tipo|v) == t }}>{{ t|rotulo("tipo") }}</option>{% endfor %}
+			</select>
+		</label>
+		<label>Prioridade
+			<select name="prioridade">
+				{% if not item %}<option value="">Do projeto / média</option>{% endif %}
+				{% for p in PRIORIDADES %}<option value="{{ p }}" {{ "selected" if (f.prioridade|v) == p }}>{{ p|rotulo("prioridade") }}</option>{% endfor %}
+			</select>
+		</label>
+		<label>Status
+			<select name="status">
+				{% for s in STATUS_ITEM %}<option value="{{ s }}" {{ "selected" if (f.status|v) == s }}>{{ s|rotulo("status") }}</option>{% endfor %}
+			</select>
+		</label>
+	</div>
+
+	<div class="linha">
+		<label class="largo">Projeto
+			<select name="projeto_id">
+				<option value="">Sem projeto</option>
+				{% for pid, cam in projetos_lista %}<option value="{{ pid }}" {{ "selected" if f.projeto_id == pid }}>{{ cam }}</option>{% endfor %}
+			</select>
+		</label>
+		<label>Área
+			<select name="area_id">
+				<option value="">Do projeto</option>
+				{% for a in areas %}<option value="{{ a.id }}" {{ "selected" if f.area_id == a.id }}>{{ a.nome }}</option>{% endfor %}
+			</select>
+		</label>
+	</div>
+
+	<fieldset>
+		<legend>Quando fazer</legend>
+		<div class="linha">
+			<label>Dia <input name="data" type="date" x-model="data"></label>
+			<label x-show="data" x-cloak>Início <input name="hora_inicio" type="time" value="{{ f.hora_inicio or '' }}"></label>
+			<label x-show="data" x-cloak>Fim <input name="hora_fim" type="time" value="{{ f.hora_fim or '' }}"></label>
+		</div>
+		<p class="dica"><span x-show="data" x-cloak>Sem horário de início = o dia todo. </span>Sem dia = vai para as pendências.</p>
+		<label class="estreito">Duração estimada <input name="duracao" value="{{ f.duracao or '' }}" placeholder="1h, 1h30, 45min" maxlength="10"></label>
+
+		<div>
+			<label>Repetir
+				<select name="rep_freq" x-model="freq">
+					<option value="">Não repete</option>
+					<option value="DAILY">Todo dia</option>
+					<option value="WEEKDAYS">Dias úteis (seg–sex)</option>
+					<option value="WEEKLY">Toda semana, nos dias…</option>
+					<option value="MONTHLY">Todo mês</option>
+					<option value="custom">Personalizada (RRULE)</option>
+				</select>
+			</label>
+			<div class="dias-semana" x-show="freq === 'WEEKLY'" x-cloak>
+				{% for d in DIAS %}
+				<label class="chip-check"><input type="checkbox" name="rep_dias" value="{{ d }}" {{ "checked" if d in (f.rep_dias or []) }}><span>{{ DIAS_NOME[d] }}</span></label>
+				{% endfor %}
+			</div>
+			<p class="dica" x-show="freq === 'WEEKLY'" x-cloak>Nenhum dia marcado = o mesmo dia da semana do início.</p>
+			<label x-show="freq === 'custom'" x-cloak>Regra <input name="rep_custom" value="{{ f.rep_custom or '' }}" placeholder="FREQ=WEEKLY;INTERVAL=2;BYDAY=MO"></label>
+			<label x-show="freq && freq !== 'custom'" x-cloak>Repetir até (opcional) <input name="rep_ate" type="date" value="{{ f.rep_ate or '' }}"></label>
+			<p class="dica aviso" x-show="freq && !data" x-cloak>Escolha o dia de início acima: ele define o primeiro dia e o horário da repetição.</p>
+		</div>
+	</fieldset>
+
+	<fieldset>
+		<legend>Prazo de entrega</legend>
+		<div class="linha">
+			<label>Dia <input name="prazo_data" type="date" value="{{ f.prazo_data or '' }}"></label>
+			<label>Hora (opcional) <input name="prazo_hora" type="time" value="{{ f.prazo_hora or '' }}"></label>
+		</div>
+	</fieldset>
+
+	{{ progresso_campos(f) }}
+	{{ links_editor(f.links) }}
+
+	{{ notas_editor(f.notas) }}
+
+	<div class="acoes">
+		<button class="btn">Salvar</button>
+		<a class="btn-sec" href="{{ voltar }}">Cancelar</a>
+	</div>
+</form>
+
+{% if item %}
+<form method="post" action="/itens/{{ item.id }}/excluir" class="zona-perigo" hx-confirm="Excluir “{{ item.titulo }}”?">
+	<input type="hidden" name="voltar" value="{{ voltar }}">
+	<button class="btn-perigo">{{ icone("lixo", 16) }} Excluir item</button>
+</form>
+{% endif %}
+{% endblock %}

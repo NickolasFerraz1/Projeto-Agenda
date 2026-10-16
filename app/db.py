@@ -1,7 +1,7 @@
 """Conexão com o SQLite e criação das tabelas."""
 from collections.abc import Iterator
 
-from sqlalchemy import event
+from sqlalchemy import event, inspect
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from app import config
@@ -34,11 +34,41 @@ def create_db() -> None:
 	from app import models  # noqa: F401  (registra as tabelas)
 
 	SQLModel.metadata.create_all(engine)
+	_migrar_colunas()
 	with Session(engine) as session:
 		if not session.exec(select(models.Area)).first():
 			for nome, cor in config.AREAS_PADRAO:
 				session.add(models.Area(nome=nome, cor=cor))
 			session.commit()
+
+
+def _migrar_colunas() -> None:
+	"""Migração simples: acrescenta colunas novas dos modelos em tabelas que já existem.
+
+	O create_all só cria tabelas que faltam; isso cobre o caso comum de campo novo
+	(sempre opcional ou com valor padrão). Renomear/remover coluna exige migração manual.
+	"""
+	from app import models
+
+	tabelas = {m.__tablename__: m for m in (models.Area, models.Projeto, models.Item, models.Link, models.Ocorrencia)}
+	with engine.begin() as conn:
+		insp = inspect(conn)
+		for nome, modelo in tabelas.items():
+			existentes = {c["name"] for c in insp.get_columns(nome)}
+			for col in modelo.__table__.columns:
+				if col.name in existentes:
+					continue
+				tipo = col.type.compile(dialect=conn.dialect)
+				padrao = modelo.model_fields[col.name].default
+				padrao = getattr(padrao, "value", padrao)
+				if padrao is None or not isinstance(padrao, (bool, int, float, str)):
+					sql_padrao = ""
+				elif isinstance(padrao, str):
+					sql_padrao = " DEFAULT '" + padrao.replace("'", "''") + "'"
+				else:
+					sql_padrao = f" DEFAULT {int(padrao) if isinstance(padrao, bool) else padrao}"
+				conn.exec_driver_sql(f'ALTER TABLE "{nome}" ADD COLUMN "{col.name}" {tipo}{sql_padrao}')
+				print(f"[db] coluna nova: {nome}.{col.name}")
 
 
 def get_session() -> Iterator[Session]:

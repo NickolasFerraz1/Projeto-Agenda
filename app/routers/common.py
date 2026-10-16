@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 
 from app.models import Area, Item, Link, Projeto
 from app.schemas import ItemOut, LinkIn, ProjetoOut
-from app.services.progresso import percentual
+from app.services.progresso import Arvore, percentual
 
 
 def get_or_404(session: Session, model, obj_id: int):
@@ -42,10 +42,14 @@ def item_out(session: Session, item: Item) -> ItemOut:
 	)
 
 
-def projeto_out(session: Session, projeto: Projeto) -> ProjetoOut:
+def projeto_out(session: Session, projeto: Projeto, arv: Arvore | None = None) -> ProjetoOut:
+	"""`arv` permite reaproveitar a árvore carregada ao montar listas."""
+	arv = arv or Arvore.carregar(session)
 	return ProjetoOut(
 		**projeto.model_dump(),
-		progresso=percentual(projeto, session),
+		progresso=arv.percentual(projeto.id) if projeto.progresso_modo == "itens" else percentual(projeto),
+		caminho=arv.caminho_texto(projeto.id),
+		bloqueado=projeto.id in arv.bloqueados(),
 		links=[l.model_dump() for l in links_of(session, projeto_id=projeto.id)],
 	)
 

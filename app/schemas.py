@@ -60,8 +60,11 @@ class AreaOut(AreaIn):
 # ---------- Projeto ----------
 class ProjetoIn(ProgressoIn):
 	nome: str = Field(max_length=120)
-	area_id: int
-	prioridade: Prioridade = Prioridade.media
+	pai_id: int | None = None  # subprojeto de outro projeto
+	area_id: int | None = None  # herda do pai quando omitida
+	prioridade: Prioridade | None = None  # herda do pai quando omitida (padrão: média)
+	ordem: int = 0
+	sequencial: bool = False
 	status: StatusProjeto = StatusProjeto.ativo
 	link: str | None = None
 	notas: str | None = None
@@ -70,7 +73,10 @@ class ProjetoIn(ProgressoIn):
 
 class ProjetoUpdate(ProgressoIn):
 	nome: str | None = Field(default=None, max_length=120)
+	pai_id: int | None = None
 	area_id: int | None = None
+	ordem: int | None = None
+	sequencial: bool | None = None
 	prioridade: Prioridade | None = None
 	status: StatusProjeto | None = None
 	link: str | None = None
@@ -81,6 +87,11 @@ class ProjetoUpdate(ProgressoIn):
 class ProjetoOut(ProgressoOut):
 	id: int
 	nome: str
+	pai_id: int | None
+	caminho: str = ""  # "Pós FIAP › Fase 3 › CI/CD"
+	ordem: int
+	sequencial: bool
+	bloqueado: bool = False  # travado por um pai sequencial
 	area_id: int
 	prioridade: Prioridade
 	status: StatusProjeto
@@ -123,6 +134,8 @@ class ItemIn(ProgressoIn, _ItemValidacao):
 	dia_inteiro: bool = False
 	prazo: NaiveDatetime | None = None  # horário local, sem fuso
 	recorrencia: str | None = None
+	duracao_min: int | None = Field(default=None, ge=1)  # duração estimada, em minutos
+	ordem: int = 0
 	notas: str | None = None
 	links: list[LinkIn] = []
 
@@ -145,6 +158,8 @@ class ItemUpdate(ProgressoIn, _ItemValidacao):
 	dia_inteiro: bool | None = None
 	prazo: NaiveDatetime | None = None  # horário local, sem fuso
 	recorrencia: str | None = None
+	duracao_min: int | None = Field(default=None, ge=1)
+	ordem: int | None = None
 	notas: str | None = None
 	links: list[LinkIn] | None = None
 
@@ -162,6 +177,8 @@ class ItemOut(ProgressoOut):
 	dia_inteiro: bool
 	prazo: datetime | None
 	recorrencia: str | None
+	duracao_min: int | None
+	ordem: int
 	notas: str | None
 	links: list[LinkOut] = []
 	criado_em: datetime
@@ -201,6 +218,8 @@ class Entrada(BaseModel):
 	area_cor: str
 	projeto_id: int | None
 	projeto_nome: str | None
+	projeto_caminho: str | None = None  # "Piano › Semana 2"
+	duracao_min: int | None = None
 	progresso: float | None
 
 

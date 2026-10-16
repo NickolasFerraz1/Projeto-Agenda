@@ -1,0 +1,35 @@
+{% from "_macros.html" import erros_box %}
+<div id="hoje-conteudo">
+	{{ erros_box(erros_captura) }}
+
+	<section class="bloco">
+		<h2>Agenda</h2>
+		{% if resumo.agenda %}
+		<ul class="lista">
+			{% for e in resumo.agenda %}{% include "partials/linha_entrada.html" %}{% endfor %}
+		</ul>
+		{% else %}
+		<p class="vazio">Nada marcado para hoje.</p>
+		{% endif %}
+	</section>
+
+	{% if resumo.atrasados %}
+	<section class="bloco bloco-alerta">
+		<h2>Atrasados <span class="contador">{{ resumo.atrasados|length }}</span></h2>
+		<ul class="lista">
+			{% for i in resumo.atrasados %}{% include "partials/linha_item.html" %}{% endfor %}
+		</ul>
+	</section>
+	{% endif %}
+
+	<section class="bloco">
+		<h2>Pendências <span class="contador">{{ resumo.pendencias|length }}</span></h2>
+		{% if resumo.pendencias %}
+		<ul class="lista">
+			{% for i in resumo.pendencias %}{% include "partials/linha_item.html" %}{% endfor %}
+		</ul>
+		{% else %}
+		<p class="vazio">Sem pendências. 🎉</p>
+		{% endif %}
+	</section>
+</div>

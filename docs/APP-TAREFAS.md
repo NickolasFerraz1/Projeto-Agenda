@@ -156,8 +156,33 @@ tarefas/
 ```
 
 ## Etapas
-1. **5.1 Backend**: modelos, API JSON (CRUD + "itens do dia"), progresso e recorrência, testes.
-2. **5.2 Interface**: telas Hoje, Semana, Projetos, Item e captura rápida; PWA.
+1. **5.1 Backend** ✅: modelos, API JSON (CRUD + "itens do dia"), progresso e recorrência, testes.
+2. **5.2 Interface** ✅: telas Hoje, Semana, Projetos, Item, Áreas e captura rápida; PWA (manifest, service worker, ícones).
+   - **5.2.1** ✅: hierarquia de projetos (subprojetos, trilha, herança), progresso automático em cascata
+     (ponderado pela duração), etapas sequenciais, duração estimada, botão +1, notas em Markdown,
+     "Repetir" sempre visível, prioridade baixa discreta, migração automática de colunas.
+   - **5.2.2**: importador de planejamento (Obsidian → app): modelo `.md`, prompt pronto para IA
+     (criar/converter), prévia e reimportação sem duplicar. Ver "Planejamento" abaixo.
 3. **5.3 Deploy no Pi**: serviço systemd, Tailscale, `tailscale serve`, backup.
 4. **5.4 Google Agenda**: conta de serviço, agenda dedicada, sincronização.
 5. **5.5 Espelho**: coluna "Hoje" na Início e página Agenda.
+
+## Planejamento (Obsidian → app)
+- Fonte: uma nota `Planejamento.md` no Obsidian, num formato simples (frontmatter `projeto`, `area`,
+  `sequencial`; `##` = etapa/subprojeto; `- [ ]` = item; `| 1h` = duração; `[rótulo](url)` = link;
+  `| 3 de 5` = quantidade; `- [x]` = concluído; o resto é anotação livre).
+- Tela "Importar plano": **Copiar modelo**, **Copiar prompt para a IA** (criar ou converter/atualizar)
+  e **Importar** (colar ou enviar o `.md` → prévia → confirmar). Modelo, prompt e importador saem da
+  mesma especificação.
+- Reimportar atualiza pelo nome (não duplica) e preserva progresso e conclusões feitas no app.
+- Cada projeto importado ganha um link "Planejamento" que abre a nota no Obsidian (`obsidian://`).
+
+## Ideias para depois (combinadas, não esquecer)
+- **Agendar etapas na semana**: escolher dias/horário (ex.: seg/qua/sex 19h) e o app distribui os
+  tópicos da etapa atual na agenda.
+- **Botão no Obsidian** ("Enviar para a Agenda"): plugin pequeno que manda a nota direto para a API
+  do Pi via Tailscale.
+- **Geração do plano com IA**: descrever o objetivo ("piano do zero, 3 h/semana, 10 semanas") e
+  receber o planejamento já no formato do importador, com etapas, durações e fontes; idealmente um
+  "modelo" (prompt/assistente) especializado em montar planejamentos de estudo de qualidade.
+- Marcar ocorrência de recorrente como "pulado"; visão de mês; ordem manual por arrastar.

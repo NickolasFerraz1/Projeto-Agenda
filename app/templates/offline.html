@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block titulo %}Sem conexão · Agenda{% endblock %}
+{% block conteudo %}
+<div class="offline">
+	<h1 class="titulo-pagina">Sem conexão com o Pi</h1>
+	<p>O app roda no Raspberry Pi. Confira se o Tailscale está ligado neste aparelho e se o Pi está online.</p>
+	<p><a class="btn" href="/" hx-boost="false">Tentar de novo</a></p>
+</div>
+{% endblock %}

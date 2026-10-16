@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icone %}
+{% set aba = "semana" %}
+{% block titulo %}Semana · Agenda{% endblock %}
+{% block conteudo %}
+<div class="cabecalho-pagina">
+	<a class="btn-icone" href="/semana?inicio={{ anterior.isoformat() }}" aria-label="Semana anterior">{{ icone("esq", 20) }}</a>
+	<h1 class="titulo-pagina">{{ seg.strftime('%d/%m') }} – {{ dom.strftime('%d/%m') }}</h1>
+	<a class="btn-icone" href="/semana?inicio={{ proxima.isoformat() }}" aria-label="Próxima semana">{{ icone("dir", 20) }}</a>
+	{% if not (seg <= hoje <= dom) %}<a class="btn-sec" href="/semana">Esta semana</a>{% endif %}
+</div>
+
+<div class="semana">
+	{% for d, entradas in dias %}
+	<section class="dia {{ 'dia-hoje' if d == hoje }} {{ 'dia-passado' if d < hoje }}">
+		<header>
+			<h2>{{ d|dia }}</h2>
+			<a class="btn-icone" href="/itens/novo?data={{ d.isoformat() }}&voltar={{ ('/semana?inicio=' ~ seg.isoformat())|urlencode }}" aria-label="Novo item em {{ d|dia }}">{{ icone("mais", 16) }}</a>
+		</header>
+		{% if entradas %}
+		<ul class="lista">
+			{% for e in entradas %}{% include "partials/linha_entrada.html" %}{% endfor %}
+		</ul>
+		{% else %}
+		<p class="vazio">—</p>
+		{% endif %}
+	</section>
+	{% endfor %}
+</div>
+{% endblock %}

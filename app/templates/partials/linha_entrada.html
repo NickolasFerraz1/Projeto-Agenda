@@ -1,0 +1,24 @@
+{% from "_macros.html" import icone, prioridade, barra %}
+{# Uma linha da agenda (Entrada). Recorrente: o "feito" vale só para o dia. #}
+{% set feito = e.status in ("concluido", "pulado") %}
+<li class="linha-item {{ 'feito' if feito }} {{ 'e-prazo' if e.tipo_entrada == 'prazo' }}" style="--cor: {{ e.area_cor }}">
+	<button class="marcar" aria-label="{{ 'Desmarcar' if feito else 'Marcar como feito' }}"
+		hx-post="/alternar/{{ e.item_id }}?tipo={{ e.tipo_entrada }}&dia={{ e.data.isoformat() }}"
+		hx-target="closest li" hx-swap="outerHTML">{{ icone("check", 14) }}</button>
+	<span class="quando">
+		{%- if e.tipo_entrada == "prazo" %}<span class="tag-prazo">{{ icone("prazo", 12) }} prazo</span>{% if e.inicio and e.inicio.strftime('%H:%M') != '23:59' %}<br>{{ e.inicio|hora }}{% endif %}
+		{%- elif e.dia_inteiro %}dia todo
+		{%- else %}{{ e.inicio|hora }}{% if e.fim %}<small>{{ e.fim|hora }}</small>{% endif %}{% endif -%}
+	</span>
+	<a class="corpo" href="/itens/{{ e.item_id }}">
+		<span class="titulo">{{ e.titulo }}</span>
+		<span class="meta">
+			<span class="ponto"></span>{{ e.projeto_caminho or e.area_nome }}
+			{%- if e.duracao_min and not e.fim %} · {{ e.duracao_min|duracao }}{% endif %}
+			{%- if e.recorrente %} · {{ icone("repete", 12) }}{% endif %}
+			{%- if e.status == "pulado" %} · pulado{% endif %}
+			{{ prioridade(e.prioridade) }}
+			{{ barra(e.progresso) }}
+		</span>
+	</a>
+</li>

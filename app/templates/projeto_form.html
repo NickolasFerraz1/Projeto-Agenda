@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icone, erros_box, links_editor, progresso_campos, notas_editor %}
+{% set aba = "projetos" %}
+{% block titulo %}{{ "Editar projeto" if projeto else "Novo projeto" }} · Agenda{% endblock %}
+{% block conteudo %}
+<div class="cabecalho-pagina">
+	<a class="btn-icone" href="{{ '/projetos/%d' % projeto.id if projeto else ('/projetos/%d' % f.pai_id if f.pai_id else '/projetos') }}" aria-label="Voltar">{{ icone("esq", 20) }}</a>
+	<h1 class="titulo-pagina">{{ "Editar projeto" if projeto else "Novo projeto" }}</h1>
+</div>
+
+{{ erros_box(erros) }}
+
+<form method="post" class="formulario">
+	<label>Nome <input name="nome" required maxlength="120" value="{{ f.nome or '' }}" placeholder="Linux — Alura, Cliente X — Catálogo…" {{ "autofocus" if not projeto }}></label>
+	<label>Dentro de
+		<select name="pai_id">
+			<option value="">— (projeto principal)</option>
+			{% for pid, cam in opcoes_pai %}<option value="{{ pid }}" {{ "selected" if f.pai_id == pid }}>{{ cam }}</option>{% endfor %}
+		</select>
+	</label>
+	<div class="linha">
+		<label>Área
+			<select name="area_id">
+				<option value="">Do projeto-pai</option>
+				{% for a in areas %}<option value="{{ a.id }}" {{ "selected" if f.area_id == a.id }}>{{ a.nome }}</option>{% endfor %}
+			</select>
+		</label>
+		<label>Prioridade
+			<select name="prioridade">
+				{% if not projeto %}<option value="">Do pai / média</option>{% endif %}
+				{% for p in PRIORIDADES %}<option value="{{ p }}" {{ "selected" if (f.prioridade|v) == p }}>{{ p|rotulo("prioridade") }}</option>{% endfor %}
+			</select>
+		</label>
+		<label>Status
+			<select name="status">
+				{% for s in STATUS_PROJETO %}<option value="{{ s }}" {{ "selected" if (f.status|v) == s }}>{{ s|rotulo("status_projeto") }}</option>{% endfor %}
+			</select>
+		</label>
+	</div>
+	<div class="linha">
+		<label class="estreito">Ordem <input name="ordem" type="number" step="1" inputmode="numeric" value="{{ f.ordem or 0 }}"></label>
+		<label class="check"><input type="checkbox" name="sequencial" {{ "checked" if f.sequencial }}>
+			<span>Sequencial<small>os subprojetos liberam um de cada vez, na ordem (ex.: Semana 1, 2, 3…)</small></span></label>
+	</div>
+	<p class="dica">Ordem 0 = ordem natural pelo nome ("Aula 2" antes de "Aula 10"). Números maiores vão para o fim.</p>
+	<label>Página principal <input name="link" type="url" inputmode="url" placeholder="https://…" value="{{ f.link or '' }}"></label>
+
+	{{ progresso_campos(f, com_itens=True) }}
+	{{ links_editor(f.links) }}
+
+	{{ notas_editor(f.notas) }}
+
+	<div class="acoes">
+		<button class="btn">Salvar</button>
+		<a class="btn-sec" href="{{ '/projetos/%d' % projeto.id if projeto else ('/projetos/%d' % f.pai_id if f.pai_id else '/projetos') }}">Cancelar</a>
+	</div>
+</form>
+
+{% if projeto %}
+<form method="post" action="/projetos/{{ projeto.id }}/excluir" class="zona-perigo"
+	hx-confirm="Excluir o projeto “{{ projeto.nome }}”? Os itens continuam existindo, sem projeto.">
+	<button class="btn-perigo">{{ icone("lixo", 16) }} Excluir projeto</button>
+</form>
+{% endif %}
+{% endblock %}

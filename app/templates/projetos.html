@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icone, prioridade, barra %}
+{% set aba = "projetos" %}
+{% block titulo %}Projetos · Agenda{% endblock %}
+{% block conteudo %}
+<div class="cabecalho-pagina">
+	<h1 class="titulo-pagina">Projetos</h1>
+	<a class="btn" href="/projetos/novo">{{ icone("mais", 16) }} Projeto</a>
+</div>
+
+<nav class="filtros">
+	{% for s in ["ativo", "pausado", "concluido", "arquivado"] %}
+	<a class="chip {{ 'on' if status == s }}" href="/projetos?status={{ s }}">{{ s|rotulo("status_projeto") }}</a>
+	{% endfor %}
+	<a class="chip {{ 'on' if status == 'todos' }}" href="/projetos?status=todos">Todos</a>
+</nav>
+
+{% if projetos %}
+<ul class="cartoes">
+	{% for p in projetos %}
+	{% set area = areas|selectattr("id", "equalto", p.area_id)|first %}
+	<li>
+		<a class="cartao" href="/projetos/{{ p.id }}" style="--cor: {{ area.cor if area else '#888' }}">
+			<span class="cartao-titulo">{{ p.nome }}</span>
+			<span class="meta">
+				<span class="ponto"></span>{{ area.nome if area }}
+				{%- if subs.get(p.id) %} · {{ subs[p.id] }} {{ "subprojeto" if subs[p.id] == 1 else "subprojetos" }}{% endif %}
+				· {{ abertos.get(p.id, 0) }} em aberto
+				{%- if status == "todos" %} · {{ p.status|rotulo("status_projeto") }}{% endif %}
+				{{ prioridade(p.prioridade) }}
+			</span>
+			{% if p.progresso is not none %}<span class="meta">{{ barra(p.progresso) }}</span>{% endif %}
+		</a>
+	</li>
+	{% endfor %}
+</ul>
+{% else %}
+<p class="vazio">Nenhum projeto aqui.</p>
+{% endif %}
+{% endblock %}

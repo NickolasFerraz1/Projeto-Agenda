@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icone, prioridade, barra, area_tag %}
+{% set aba = "projetos" %}
+{% block titulo %}{{ p.nome }} · Agenda{% endblock %}
+{% block conteudo %}
+{% set area = areas|selectattr("id", "equalto", p.area_id)|first %}
+{% set rel = p.id %}{# caminhos dos itens relativos a este projeto #}
+{% set prio_rel = p.prioridade|v %}
+
+<nav class="trilha" aria-label="Caminho">
+	<a href="/projetos">Projetos</a>
+	{% for t in trilha %}<span>›</span><a href="/projetos/{{ t.id }}">{{ t.nome }}</a>{% endfor %}
+</nav>
+
+<div class="cabecalho-pagina">
+	<a class="btn-icone" href="{{ '/projetos/%d' % p.pai_id if p.pai_id else '/projetos' }}" aria-label="Voltar">{{ icone("esq", 20) }}</a>
+	<h1 class="titulo-pagina">{{ p.nome }}</h1>
+	<a class="btn-sec" href="/projetos/{{ p.id }}/editar">Editar</a>
+</div>
+
+<div class="resumo-projeto" style="--cor: {{ area.cor if area else '#888' }}">
+	<p class="meta">
+		{{ area_tag(area) if area }} · {{ p.status|rotulo("status_projeto") }} · prioridade {{ p.prioridade|rotulo("prioridade")|lower }}
+		{%- if p.sequencial %} · sequencial{% endif %}
+		{%- if p.bloqueado %} · {{ icone("cadeado", 12) }} aguardando a etapa anterior{% endif %}
+	</p>
+	{% if p.progresso is not none %}
+	<p class="progresso-grande">
+		{{ barra(p.progresso) }}
+		{% if (p.progresso_modo|v) == "quantidade" %}<small>{{ p.progresso_atual|num or 0 }} de {{ p.progresso_total|num }} {{ p.progresso_unidade or "" }}</small>{% endif %}
+	</p>
+	{% endif %}
+	{% if p.link or p.links %}
+	<ul class="links-lista">
+		{% if p.link %}<li><a href="{{ p.link }}" target="_blank" rel="noopener" hx-boost="false">{{ icone("link", 14) }} Página principal</a></li>{% endif %}
+		{% for l in p.links %}<li><a href="{{ l.url }}" target="_blank" rel="noopener" hx-boost="false">{{ icone("link", 14) }} {{ l.rotulo }}</a></li>{% endfor %}
+	</ul>
+	{% endif %}
+	{% if p.notas %}<div class="notas md" hx-boost="false">{{ p.notas|markdown }}</div>{% endif %}
+</div>
+
+{% if subprojetos %}
+<section class="bloco">
+	<div class="cabecalho-bloco">
+		<h2>{{ "Etapas" if p.sequencial else "Subprojetos" }} <span class="contador">{{ subprojetos|length }}</span></h2>
+		<a class="btn-sec" href="/projetos/novo?pai_id={{ p.id }}">{{ icone("mais", 16) }} Subprojeto</a>
+	</div>
+	{% if subprojetos %}
+	<ul class="cartoes cartoes-sub">
+		{% for s in subprojetos %}
+		{% set sa = areas|selectattr("id", "equalto", s.area_id)|first %}
+		{% set concl = (s.status|v) == "concluido" or (s.progresso or 0) >= 100 %}
+		<li>
+			<a class="cartao {{ 'bloqueado' if s.bloqueado }} {{ 'concluido' if concl }}" href="/projetos/{{ s.id }}" style="--cor: {{ sa.cor if sa else '#888' }}">
+				<span class="cartao-titulo">
+					{%- if s.bloqueado %}{{ icone("cadeado", 14) }} {% elif concl %}{{ icone("check", 14) }} {% elif p.sequencial %}{{ icone("play", 14) }} {% endif -%}
+					{{ s.nome }}
+				</span>
+				<span class="meta">
+					{{ abertos_sub.get(s.id, 0) }} em aberto
+					{%- if (s.status|v) not in ("ativo", "concluido") %} · {{ s.status|rotulo("status_projeto")|lower }}{% endif %}
+					{%- if s.bloqueado %} · libera quando a anterior terminar{% elif p.sequencial and not concl %} · atual{% endif %}
+					{{ prioridade(s.prioridade) if s.prioridade != p.prioridade }}
+				</span>
+				{% if s.progresso is not none %}<span class="meta">{{ barra(s.progresso) }}</span>{% endif %}
+			</a>
+		</li>
+		{% endfor %}
+	</ul>
+	{% endif %}
+</section>
+{% endif %}
+
+<section class="bloco">
+	<div class="cabecalho-bloco">
+		<h2>Itens em aberto <span class="contador">{{ abertos|length }}</span></h2>
+		<a class="btn-sec" href="/itens/novo?projeto_id={{ p.id }}">{{ icone("mais", 16) }} Item</a>
+	</div>
+	{% if abertos %}
+	<ul class="lista">{% for i in abertos %}{% include "partials/linha_item.html" %}{% endfor %}</ul>
+	{% else %}
+	<p class="vazio">Nenhum item direto aqui.</p>
+	{% endif %}
+	{% if not subprojetos %}
+	<a class="link-sutil" href="/projetos/novo?pai_id={{ p.id }}">{{ icone("mais", 14) }} Criar subprojeto (fases, blocos, semanas…)</a>
+	{% endif %}
+</section>
+
+{% if fechados %}
+<details class="bloco">
+	<summary><h2>Concluídos e cancelados <span class="contador">{{ fechados|length }}</span></h2></summary>
+	<ul class="lista">{% for i in fechados %}{% include "partials/linha_item.html" %}{% endfor %}</ul>
+</details>
+{% endif %}
+{% endblock %}

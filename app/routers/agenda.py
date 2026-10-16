@@ -9,11 +9,20 @@ from app.models import Area, Item, Ocorrencia, Projeto, StatusItem
 from app.routers.common import item_out
 from app.schemas import Entrada, Hoje
 from app.services import recorrencia
-from app.services.progresso import percentual
+from app.services.progresso import Arvore, percentual
 
 router = APIRouter(prefix="/api", tags=["agenda"])
 
 MAX_DIAS = 400
+
+
+def _caminho(projetos: dict, projeto_id: int | None) -> str | None:
+	nomes, visto = [], set()
+	while projeto_id in projetos and projeto_id not in visto:
+		visto.add(projeto_id)
+		nomes.append(projetos[projeto_id].nome)
+		projeto_id = projetos[projeto_id].pai_id
+	return " › ".join(reversed(nomes)) or None
 
 
 def _entrada(item: Item, tipo: str, dia: date, inicio, fim, status: str, areas, projetos, session) -> Entrada:
@@ -36,6 +45,8 @@ def _entrada(item: Item, tipo: str, dia: date, inicio, fim, status: str, areas, 
 		area_cor=area.cor,
 		projeto_id=projeto.id if projeto else None,
 		projeto_nome=projeto.nome if projeto else None,
+		projeto_caminho=_caminho(projetos, item.projeto_id),
+		duracao_min=item.duracao_min,
 		progresso=percentual(item, session),
 	)
 
@@ -105,9 +116,13 @@ def hoje(dia: date | None = None, session: Session = Depends(get_session)):
 			or_(Item.inicio < datetime.combine(dia, time.min), Item.prazo < datetime.combine(dia, time.min)),
 		)
 	).all()
-	pendencias = session.exec(
-		select(Item).where(Item.inicio.is_(None), Item.recorrencia.is_(None), Item.status.in_(abertos))
-	).all()
+	# Pendências: sem data, abertas e fora de etapas travadas ou projetos pausados/arquivados
+	fora = Arvore.carregar(session).fora_de_foco()
+	pendencias = [
+		i
+		for i in session.exec(select(Item).where(Item.inicio.is_(None), Item.recorrencia.is_(None), Item.status.in_(abertos))).all()
+		if i.projeto_id not in fora
+	]
 	ordem = lambda i: (-i.prioridade.peso, i.prazo or datetime.max)  # noqa: E731
 	return Hoje(
 		data=dia,

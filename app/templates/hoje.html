@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icone %}
+{% set aba = "hoje" %}
+{% block titulo %}Hoje · Agenda{% endblock %}
+{% block conteudo %}
+<h1 class="titulo-pagina">{{ dia|dia(longo=True) }}</h1>
+
+{# Captura rápida: digitar e Enter. Opções extras ficam a um toque. #}
+<form class="captura" hx-post="/captura" hx-target="#hoje-conteudo" hx-swap="outerHTML"
+	x-data="{
+		quando: '', extra: false, prio: 'media', area: '{{ areas[0].id if areas else '' }}',
+		init() { try { this.area = localStorage.getItem('captura-area') || this.area } catch (e) {} },
+		lembrarArea() { try { localStorage.setItem('captura-area', this.area) } catch (e) {} },
+	}"
+	@htmx:after-request="if ($event.detail.successful && $event.detail.elt === $el) { $refs.titulo.value = ''; $refs.titulo.focus() }">
+	<div class="captura-linha">
+		<input x-ref="titulo" name="titulo" placeholder="Adicionar… (Enter salva)" autocomplete="off" required maxlength="200">
+		<button class="btn" aria-label="Adicionar">{{ icone("mais", 18) }}</button>
+	</div>
+	<div class="chips">
+		<input type="hidden" name="quando" :value="quando">
+		<button type="button" class="chip" :class="quando === '' && 'on'" @click="quando = ''">Sem data</button>
+		<button type="button" class="chip" :class="quando === 'hoje' && 'on'" @click="quando = 'hoje'">Hoje</button>
+		<button type="button" class="chip" :class="quando === 'amanha' && 'on'" @click="quando = 'amanha'">Amanhã</button>
+		<input class="chip-hora" type="time" name="hora" x-show="quando" x-cloak aria-label="Horário (opcional)">
+		<button type="button" class="chip chip-mais" @click="extra = !extra" x-text="extra ? 'menos' : 'mais…'">mais…</button>
+	</div>
+	<div class="chips" x-show="extra" x-cloak>
+		<select name="area_id" x-model="area" @change="lembrarArea()" aria-label="Área">
+			{% for a in areas %}<option value="{{ a.id }}">{{ a.nome }}</option>{% endfor %}
+		</select>
+		<select name="prioridade" x-model="prio" aria-label="Prioridade">
+			{% for p in PRIORIDADES %}<option value="{{ p }}">{{ p|rotulo("prioridade") }}</option>{% endfor %}
+		</select>
+	</div>
+</form>
+
+{% include "partials/hoje_listas.html" %}
+{% endblock %}

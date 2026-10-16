@@ -1,0 +1,40 @@
+{% from "_macros.html" import icone, prioridade, barra %}
+{# Uma linha de lista (ItemOut): atrasados, pendências e itens do projeto.
+   `caminhos`: projeto_id -> "Pós FIAP › Fase 3" (na página do projeto, relativo a ele). #}
+{% set area = (areas|selectattr("id", "equalto", i.area_id)|first) if areas else none %}
+{% set caminho = caminhos.get(i.projeto_id) if caminhos and i.projeto_id else "" %}
+{% set feito = (i.status|v) in ("concluido", "cancelado") %}
+{% set qtd = (i.progresso_modo|v) == "quantidade" %}
+{% set q = "?rel=%d" % rel if rel else "" %}
+{% set prio_rel = prio_rel|default("") %}{# prioridade igual à do projeto da página: não repete a etiqueta #}
+<li class="linha-item {{ 'feito' if feito }}" style="--cor: {{ area.cor if area else '#888' }}">
+	{% if not i.recorrencia %}
+	<button class="marcar" aria-label="{{ 'Desmarcar' if feito else 'Marcar como feito' }}"
+		hx-post="/alternar/{{ i.id }}{{ q }}" hx-target="closest li" hx-swap="outerHTML">{{ icone("check", 14) }}</button>
+	{% else %}
+	<span class="marcar marcar-off" title="Recorrente: marque o dia na agenda">{{ icone("repete", 14) }}</span>
+	{% endif %}
+	<span class="quando">
+		{%- if i.prazo and not feito %}<span class="tag-prazo {{ 'vencido' if i.prazo.date() < hoje }}">{{ i.prazo|dia_curto }}</span>
+		{%- elif i.inicio %}{{ i.inicio|dia_curto }}{% if not i.dia_inteiro %}<small>{{ i.inicio|hora }}</small>{% endif %}
+		{%- endif -%}
+	</span>
+	<a class="corpo" href="/itens/{{ i.id }}">
+		<span class="titulo">{{ i.titulo }}</span>
+		<span class="meta">
+			{%- if caminho or area %}<span class="ponto"></span>{{ caminho or area.nome }}{% endif %}
+			{%- if i.duracao_min %} · {{ i.duracao_min|duracao }}{% endif %}
+			{%- if i.recorrencia %} · {{ i.recorrencia|recorrencia }}{% endif %}
+			{%- if (i.status|v) == "em_andamento" %} · em andamento{% endif %}
+			{%- if (i.status|v) == "cancelado" %} · cancelado{% endif %}
+			{%- if i.links %} · {{ icone("link", 12) }} {{ i.links|length }}{% endif %}
+			{{ prioridade(i.prioridade) if (i.prioridade|v) != prio_rel }}
+			{{ barra(i.progresso, com_pct=not (qtd and i.progresso_total)) }}
+			{%- if qtd and i.progresso_total %}<span class="pct">{{ i.progresso_atual|num or 0 }}/{{ i.progresso_total|num }}{% if i.progresso_unidade %} {{ i.progresso_unidade }}{% endif %}</span>{% endif %}
+		</span>
+	</a>
+	{% if qtd and not feito %}
+	<button class="btn-mais1" hx-post="/incrementar/{{ i.id }}{{ q }}" hx-target="closest li" hx-swap="outerHTML"
+		aria-label="Mais um ({{ i.titulo }})">+1</button>
+	{% endif %}
+</li>

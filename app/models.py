@@ -46,7 +46,7 @@ class ProgressoModo(str, Enum):
 	nenhum = "nenhum"
 	manual = "manual"  # "~50% da implementação"
 	quantidade = "quantidade"  # "4 h de 8 h", "12 de 40 aulas"
-	itens = "itens"  # só Projeto: itens concluídos / itens totais
+	itens = "itens"  # só Projeto: automático, média dos itens e subprojetos (ponderada pela duração)
 
 
 class StatusOcorrencia(str, Enum):
@@ -78,6 +78,10 @@ class Area(SQLModel, table=True):
 class Projeto(ProgressoCampos, Timestamps, table=True):
 	id: int | None = Field(default=None, primary_key=True)
 	nome: str = Field(max_length=120)
+	pai_id: int | None = Field(default=None, foreign_key="projeto.id", index=True, ondelete="SET NULL")  # subprojeto
+	ordem: int = 0  # posição entre os irmãos (0 = ordem natural pelo nome)
+	sequencial: bool = False  # subprojetos liberam um de cada vez, na ordem
+	progresso_modo: ProgressoModo = ProgressoModo.itens  # projetos: automático por padrão
 	area_id: int = Field(foreign_key="area.id", index=True)
 	prioridade: Prioridade = Prioridade.media
 	status: StatusProjeto = StatusProjeto.ativo
@@ -98,6 +102,8 @@ class Item(ProgressoCampos, Timestamps, table=True):
 	dia_inteiro: bool = False
 	prazo: NaiveDatetime | None = Field(default=None, index=True)  # data-limite de entrega
 	recorrencia: str | None = None  # RRULE, ex.: "FREQ=WEEKLY;BYDAY=TU,TH"
+	duracao_min: int | None = Field(default=None, ge=1)  # duração estimada (pesa no progresso do projeto)
+	ordem: int = 0  # posição dentro do projeto (0 = ordem natural pelo título)
 	notas: str | None = None
 	gcal_event_id: str | None = None
 
