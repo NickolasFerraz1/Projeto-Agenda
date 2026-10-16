@@ -1,0 +1,21 @@
+# Projeto Agenda — app de tarefas (FastAPI) no Raspberry Pi.
+# Instalado pelo scripts/instalar_pi.sh em /etc/systemd/system/agenda.service
+[Unit]
+Description=Projeto Agenda (FastAPI + SQLite, porta 8090)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USUARIO__
+WorkingDirectory=__REPO__
+Environment=TZ=America/Sao_Paulo
+Environment=PYTHONUNBUFFERED=1
+# Só localhost: o acesso de fora é pelo Tailscale (tailscale serve -> HTTPS -> 127.0.0.1:8090)
+# e o espelho lê a API direto no Pi.
+ExecStart=__REPO__/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8090 --workers 1 --proxy-headers --forwarded-allow-ips=127.0.0.1
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

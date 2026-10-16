@@ -69,6 +69,29 @@ Meta da semana: postura.
 
 Reimportar atualiza pelo nome, não duplica, nunca apaga e mantém o que foi concluído/progredido no app.
 
+## Deploy no Raspberry Pi
+
+O app roda como serviço `systemd` (`agenda.service`, porta 8090, só `127.0.0.1`) e é acessado
+de fora pelo **Tailscale** com HTTPS (`tailscale serve`). Backup diário às 03:30 em
+`data/backups/` (mantém 14).
+
+```bash
+# primeira vez
+cd ~ && git clone https://github.com/NickolasFerraz1/Projeto-Agenda.git projeto-agenda
+cd projeto-agenda && bash scripts/instalar_pi.sh
+
+# atualizar depois de um git push no PC
+cd ~/projeto-agenda && git pull && bash scripts/instalar_pi.sh
+```
+
+| Comando | Para quê |
+|---|---|
+| `systemctl status agenda` | o app está rodando? |
+| `journalctl -u agenda -n 50 --no-pager` | últimos logs |
+| `sudo systemctl restart agenda` | reiniciar |
+| `systemctl list-timers agenda-backup.timer` | próximo backup |
+| `tailscale serve status` | endereço HTTPS do app |
+
 ## Testes
 
 ```bash

@@ -45,7 +45,7 @@ uvicorn app.main:app --reload --port 8090
 - 82 testes passando.
 
 ## Depois
-1. **5.3 Deploy no Pi** (próxima): venv, serviço `systemd` (porta 8090), Tailscale no Pi/celular/PC, `tailscale serve` (HTTPS → PWA instalável no celular), backup diário do SQLite (`sqlite3 .backup`, 14 dias).
+1. **5.3 Deploy no Pi** (em andamento): `bash scripts/instalar_pi.sh` (venv, serviço `agenda` na porta 8090 só localhost, backup diário 03:30 mantendo 14), Tailscale no Pi/celular/PC, `sudo tailscale serve --bg 8090` (HTTPS → PWA instalável no celular).
 2. **5.4 Google Agenda**: conta de serviço, agenda dedicada "Espelho", sincronização app → Google (itens com horário; cor por prioridade; recorrentes com a mesma RRULE).
 3. **5.5 Espelho**: coluna "Hoje" na Início e página Agenda lendo `/api/hoje` e `/api/agenda` (feito no repo do MagicMirror).
 

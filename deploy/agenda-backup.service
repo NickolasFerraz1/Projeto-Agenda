@@ -1,0 +1,8 @@
+[Unit]
+Description=Backup diário do banco do Projeto Agenda
+
+[Service]
+Type=oneshot
+User=__USUARIO__
+WorkingDirectory=__REPO__
+ExecStart=__REPO__/.venv/bin/python scripts/backup.py

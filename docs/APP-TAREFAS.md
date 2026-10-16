@@ -169,7 +169,7 @@ tarefas/
      direto na Hoje (botão 📅 na tarefa atrasada); desagendar; "agendar sozinho" a próxima etapa
      quando a anterior termina (planos sequenciais, opcional); horários guardados no plano e sugestão quando a próxima
      etapa libera (na Hoje e no projeto).
-3. **5.3 Deploy no Pi**: serviço systemd, Tailscale, `tailscale serve`, backup.
+3. **5.3 Deploy no Pi** (scripts prontos: `scripts/instalar_pi.sh`, `deploy/*.service|timer`, `scripts/backup.py`): serviço systemd, Tailscale, `tailscale serve`, backup.
 4. **5.4 Google Agenda**: conta de serviço, agenda dedicada, sincronização.
 5. **5.5 Espelho**: coluna "Hoje" na Início e página Agenda.
 
