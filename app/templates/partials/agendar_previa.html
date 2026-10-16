@@ -33,6 +33,10 @@
 	<div class="acoes">
 		<button class="btn">{{ icone("check", 16) }} Confirmar agendamento</button>
 	</div>
+	{% else %}
+	<div class="acoes">
+		<button class="btn-sec">Salvar só os horários e opções</button>
+	</div>
 	{% endif %}
 </div>
 {% endif %}

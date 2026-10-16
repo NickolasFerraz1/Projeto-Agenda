@@ -233,3 +233,13 @@ def test_auto_ligado_pela_tela_agendar(client, area_id):
 	assert client.get(f"/api/projetos/{piano['id']}").json()["agenda_auto"] is True
 	client.post(f"/projetos/{s1['id']}/agendar", data={k: v for k, v in dados.items() if k != "auto"})
 	assert client.get(f"/api/projetos/{piano['id']}").json()["agenda_auto"] is False
+
+
+def test_salvar_opcao_sem_tarefas_para_agendar(client, area_id):
+	piano, s1, s2, ids = _plano(client, area_id)
+	dados = {"dias": ["MO"], "hora": "19:00", "minutos": "60", "a_partir": "2030-01-07", "atrasadas": "livres"}
+	client.post(f"/projetos/{s1['id']}/agendar", data=dados)  # agenda tudo
+	r = client.post(f"/projetos/{s1['id']}/agendar/previa", data={**dados, "auto": "on"})
+	assert "Salvar só os horários" in r.text and "Confirmar agendamento" not in r.text
+	client.post(f"/projetos/{s1['id']}/agendar", data={**dados, "auto": "on"})
+	assert client.get(f"/api/projetos/{piano['id']}").json()["agenda_auto"] is True
