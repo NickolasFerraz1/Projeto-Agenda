@@ -69,6 +69,25 @@ Meta da semana: postura.
 
 Reimportar atualiza pelo nome, não duplica, nunca apaga e mantém o que foi concluído/progredido no app.
 
+## Google Agenda (opcional)
+
+Sincronização em mão única (app → Google) numa agenda dedicada "Espelho", para receber
+notificações no celular. Itens com horário e prazos viram eventos (cor pela prioridade;
+recorrentes com a mesma RRULE; concluídos ficam com "✓" e sem lembrete; cancelados e sem
+data saem). Roda logo após cada alteração e a cada 15 min. Status e botão "Sincronizar agora"
+em **Áreas** (engrenagem).
+
+1. **Google Cloud** (console.cloud.google.com): criar um projeto → *APIs e serviços* → *Biblioteca*
+   → ativar **Google Calendar API**.
+2. *IAM e administrador* → *Contas de serviço* → **Criar** (ex.: `agenda-sync`, sem papéis) →
+   na conta criada: *Chaves* → *Adicionar chave* → **JSON**. Salvar como
+   `data/google-credenciais.json` (fora do Git).
+3. **Google Agenda** (calendar.google.com): *Outras agendas* → **Criar nova agenda** "Espelho" →
+   nas configurações dela: *Compartilhar com pessoas específicas* → e-mail da conta de serviço
+   (`…@….iam.gserviceaccount.com`) com **Fazer alterações nos eventos**. Em *Integrar agenda*,
+   copiar o **ID da agenda**. Em *Notificações de eventos*, escolher o lembrete padrão.
+4. Criar o `.env` a partir do `.env.example` com `AGENDA_GCAL_ID=<id da agenda>` e reiniciar o app.
+
 ## Deploy no Raspberry Pi
 
 O app roda como serviço `systemd` (`agenda.service`, porta 8090, só `127.0.0.1`) e é acessado
@@ -91,6 +110,12 @@ cd ~/projeto-agenda && git pull && bash scripts/instalar_pi.sh
 | `sudo systemctl restart agenda` | reiniciar |
 | `systemctl list-timers agenda-backup.timer` | próximo backup |
 | `tailscale serve status` | endereço HTTPS do app |
+| `curl -s localhost:8090/api/saude` | saúde do app e da sincronização com o Google |
+
+Google Agenda no Pi: copiar `.env` e `data/google-credenciais.json` do PC
+(`scp .env nickferraz@magicmirror:~/projeto-agenda/` e
+`scp data/google-credenciais.json nickferraz@magicmirror:~/projeto-agenda/data/`) e
+`sudo systemctl restart agenda`.
 
 ## Testes
 

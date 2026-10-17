@@ -33,7 +33,7 @@ from app.routers import itens as api_itens
 from app.routers import projetos as api_projetos
 from app.routers.common import get_or_404, item_out
 from app.schemas import AreaIn, AreaUpdate, ItemIn, ItemUpdate, ProjetoIn, ProjetoUpdate
-from app.services import agendar, duracao, markdown, plano, recorrencia
+from app.services import agendar, duracao, gcal, markdown, plano, recorrencia
 from app.services.progresso import Arvore, ordem_natural
 
 router = APIRouter(include_in_schema=False)
@@ -119,6 +119,8 @@ def render(request: Request, nome: str, session: Session | None = None, **ctx) -
 	if session is not None:
 		ctx.setdefault("areas", session.exec(select(Area).order_by(Area.nome)).all())
 	ctx.setdefault("hoje", date.today())
+	ctx.setdefault("google", gcal.ESTADO)
+	ctx.setdefault("gcal_id", config.GCAL_ID)
 	if not nome.startswith("partials/"):
 		ctx.setdefault("avisos_globais", agendar.consumir_avisos())
 	return templates.TemplateResponse(request, nome, ctx)
@@ -674,7 +676,14 @@ async def excluir_item(request: Request, item_id: int, session: Session = Depend
 # ---------- Áreas ----------
 @router.get("/areas", response_class=HTMLResponse)
 def pagina_areas(request: Request, session: Session = Depends(get_session)):
-	return render(request, "areas.html", session)
+	return render(request, "areas.html", session, google=gcal.ESTADO, gcal_id=config.GCAL_ID)
+
+
+@router.post("/google/sincronizar")
+def google_sincronizar():
+	"""Botão "Sincronizar agora" (roda na hora, em vez de esperar a próxima rodada)."""
+	gcal.rodar_agora()
+	return _redirect("/areas")
 
 
 @router.post("/areas", response_class=HTMLResponse)

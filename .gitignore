@@ -13,3 +13,4 @@ venv/
 .env
 *.json.key
 service-account*.json
+google-credenciais*.json

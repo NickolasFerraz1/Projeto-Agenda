@@ -346,3 +346,6 @@ label.check input[type=radio] { accent-color: var(--acento); }
 .toast { pointer-events: auto; background: var(--sup2); border: 1px solid color-mix(in srgb, var(--acento) 45%, var(--borda));
 	border-radius: 10px; padding: 10px 14px; font-size: 14px; box-shadow: 0 8px 24px rgb(0 0 0 / .45); animation: toast-in .2s ease-out; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.cartao-google { max-width: 560px; border-top-color: var(--ok); gap: 8px; }
+.cartao-google p { margin: 0; }
+code { background: var(--sup2); border-radius: 4px; padding: 1px 5px; font-size: .9em; overflow-wrap: anywhere; }

@@ -29,4 +29,23 @@
 	<input name="nome" required maxlength="40" placeholder="Saúde, Finanças…" aria-label="Nome">
 	<button class="btn">{{ icone("mais", 16) }} Criar</button>
 </form>
+
+<h2 class="subtitulo">Google Agenda</h2>
+{% if google.configurado %}
+<div class="cartao cartao-google">
+	<p class="meta"><span class="ponto" style="--cor: var(--ok)"></span>Sincronizando com a agenda <code>{{ gcal_id|truncate(40, True, "…") }}</code></p>
+	{% if google.ultima %}
+	<p class="meta">Última sincronização: {{ google.ultima|dia }} às {{ google.ultima|hora }}
+		{%- if google.resultado %} · {{ google.resultado.total }} eventos
+		(+{{ google.resultado.criados }} ~{{ google.resultado.atualizados }} −{{ google.resultado.apagados }}){% endif %}</p>
+	{% else %}
+	<p class="meta">Primeira sincronização em andamento…</p>
+	{% endif %}
+	{% if google.erro %}<div class="erros"><p>{{ google.erro }}</p></div>{% endif %}
+	<form method="post" action="/google/sincronizar"><button class="btn-sec">Sincronizar agora</button></form>
+	<p class="dica">Itens com horário e prazos vão para a agenda (cor pela prioridade; concluídos ficam com ✓ e sem lembrete). Sincroniza logo após cada alteração e a cada 15 min.</p>
+</div>
+{% else %}
+<p class="dica">Desligado. Para ligar: crie a conta de serviço e a agenda “Espelho”, salve o JSON em <code>data/google-credenciais.json</code> e coloque <code>AGENDA_GCAL_ID</code> no <code>.env</code> (passo a passo no README). Depois reinicie o app.</p>
+{% endif %}
 {% endblock %}

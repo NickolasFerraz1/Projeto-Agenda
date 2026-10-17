@@ -5,7 +5,10 @@ from app import db
 
 
 @pytest.fixture()
-def client():
+def client(monkeypatch):
+	from app import config
+
+	monkeypatch.setattr(config, "GCAL_ID", "")  # testes nunca falam com o Google de verdade
 	db.init_engine("sqlite://")  # banco em memória, novo a cada teste
 	from app.main import app
 

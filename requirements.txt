@@ -5,6 +5,8 @@ uvicorn[standard]>=0.30
 jinja2>=3.1          # templates da interface web
 python-multipart>=0.0.9  # formulários HTML
 markdown-it-py>=3     # notas em Markdown
+google-auth>=2.30     # Google Agenda (conta de serviço)
+requests>=2.31
 
 # desenvolvimento
 pytest>=8
