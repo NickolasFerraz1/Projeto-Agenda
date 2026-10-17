@@ -680,10 +680,21 @@ def pagina_areas(request: Request, session: Session = Depends(get_session)):
 
 
 @router.post("/google/sincronizar")
-def google_sincronizar():
-	"""Botão "Sincronizar agora" (roda na hora, em vez de esperar a próxima rodada)."""
-	gcal.rodar_agora()
-	return _redirect("/areas")
+def google_sincronizar(request: Request):
+	"""Botão "Sincronizar agora" (roda na hora, em vez de esperar a próxima rodada).
+	Via HTMX devolve só o cartão atualizado + um toast com o resultado."""
+	res = gcal.rodar_agora()
+	if not request.headers.get("HX-Request"):
+		return _redirect("/areas")
+	if res is None:
+		agendar.avisar(f"Falha ao sincronizar: {gcal.ESTADO.erro or 'Google indisponível'}")
+	elif res.erros:
+		agendar.avisar(f"Sincronizado com {len(res.erros)} erro(s): veja o cartão do Google.")
+	elif res.criados or res.atualizados or res.apagados:
+		agendar.avisar(f"Sincronizado: {res.criados} criados, {res.atualizados} atualizados, {res.apagados} apagados.")
+	else:
+		agendar.avisar("Sincronizado: a agenda já estava em dia.")
+	return _com_avisos(render(request, "partials/google_cartao.html"))
 
 
 @router.post("/areas", response_class=HTMLResponse)

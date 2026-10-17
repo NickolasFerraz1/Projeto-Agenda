@@ -129,3 +129,15 @@ def test_rodar_agora_e_status_na_tela(client, area_id, monkeypatch):
 def test_desligado_sem_configuracao(client):
 	assert "Desligado" in client.get("/areas").text
 	assert client.get("/api/saude").json()["google"]["configurado"] is False
+
+
+def test_botao_htmx_devolve_cartao_e_toast(client, area_id, monkeypatch):
+	g = GoogleFalso()
+	monkeypatch.setattr(gcal, "_fabrica_cliente", lambda: g)
+	monkeypatch.setattr(gcal.ESTADO, "configurado", True)
+	client.post("/api/itens", json={"titulo": "Z", "area_id": area_id, "inicio": "2026-10-20T10:00:00"})
+	r = client.post("/google/sincronizar", headers={"HX-Request": "true"})
+	assert r.status_code == 200 and 'id="cartao-google"' in r.text and "<html" not in r.text
+	assert "1 criados" in r.headers["HX-Trigger"]
+	r = client.post("/google/sincronizar", headers={"HX-Request": "true"})
+	assert "em dia" in r.headers["HX-Trigger"]

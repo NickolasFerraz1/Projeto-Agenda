@@ -11,6 +11,7 @@ venv/
 
 # Segredos
 .env
+.env.desligado
 *.json.key
 service-account*.json
 google-credenciais*.json

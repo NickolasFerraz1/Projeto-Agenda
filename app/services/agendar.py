@@ -237,6 +237,10 @@ def proxima_para_agendar(session: Session, projeto_id: int) -> Projeto | None:
 _AVISOS: list[str] = []  # avisos para a interface (app de um usuário só: memória do processo basta)
 
 
+def avisar(texto: str) -> None:
+	_AVISOS.append(texto)
+
+
 def consumir_avisos() -> list[str]:
 	avisos = _AVISOS[:]
 	_AVISOS.clear()
