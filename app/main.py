@@ -30,6 +30,17 @@ app.mount("/static", StaticFiles(directory=config.ROOT / "app" / "static"), name
 
 
 @app.middleware("http")
+async def versao_nova(request: Request, call_next):
+	"""A navegação rápida (hx-boost) troca só o corpo da página: CSS/JS ficam os da versão em que
+	a janela abriu. Se o app foi atualizado no meio, manda o navegador recarregar a página inteira."""
+	resposta = await call_next(request)
+	versao = request.headers.get("X-Agenda-Versao")
+	if versao and versao != config.ASSET_VERSION and request.headers.get("HX-Request"):
+		resposta.headers["HX-Refresh"] = "true"
+	return resposta
+
+
+@app.middleware("http")
 async def avisar_google(request: Request, call_next):
 	"""Depois de qualquer alteração bem-sucedida, antecipa a sincronização com o Google."""
 	resposta = await call_next(request)

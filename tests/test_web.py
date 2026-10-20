@@ -195,3 +195,14 @@ def test_visao_de_mes(client, area_id):
 	assert "terça, 10 de fev" in client.get("/mes?m=2026-02&dia=2026-02-10").text
 	assert client.get("/mes?m=xx").status_code == 200
 	assert 'class="alternar-vista"' in client.get("/semana").text
+
+
+def test_versao_antiga_recarrega_a_pagina(client):
+	from app import config
+
+	assert f'"X-Agenda-Versao": "{config.ASSET_VERSION}"' in client.get("/").text
+	atual = {"HX-Request": "true", "HX-Boosted": "true", "X-Agenda-Versao": config.ASSET_VERSION}
+	assert "HX-Refresh" not in client.get("/mes", headers=atual).headers
+	antiga = {**atual, "X-Agenda-Versao": "1"}
+	assert client.get("/mes", headers=antiga).headers["HX-Refresh"] == "true"
+	assert "HX-Refresh" not in client.get("/mes", headers={"X-Agenda-Versao": "1"}).headers  # navegação normal

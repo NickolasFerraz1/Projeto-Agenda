@@ -16,7 +16,7 @@
 	<script src="/static/vendor/alpine-3.14.8.min.js?v={{ VERSAO }}" defer></script>
 </head>
 {% set aba = aba|default("") %}
-<body hx-boost="true">
+<body hx-boost="true" hx-headers='{"X-Agenda-Versao": "{{ VERSAO }}"}'>
 	<header class="topo">
 		<a href="/" class="marca">Agenda</a>
 		<nav class="nav-topo">
