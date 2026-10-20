@@ -21,7 +21,7 @@
 		<a href="/" class="marca">Agenda</a>
 		<nav class="nav-topo">
 			<a href="/" class="{{ 'ativo' if aba == 'hoje' }}">Hoje</a>
-			<a href="/semana" class="{{ 'ativo' if aba == 'semana' }}">Semana</a>
+			<a href="/semana" class="{{ 'ativo' if aba == 'semana' }}">Calendário</a>
 			<a href="/projetos" class="{{ 'ativo' if aba == 'projetos' }}">Projetos</a>
 		</nav>
 		<a href="/areas" class="btn-icone {{ 'ativo' if aba == 'areas' }}" aria-label="Áreas">{{ icone("areas", 20) }}</a>
@@ -38,7 +38,7 @@
 
 	<nav class="abas" aria-label="Navegação">
 		<a href="/" class="{{ 'ativo' if aba == 'hoje' }}">{{ icone("hoje", 22) }}<span>Hoje</span></a>
-		<a href="/semana" class="{{ 'ativo' if aba == 'semana' }}">{{ icone("semana", 22) }}<span>Semana</span></a>
+		<a href="/semana" class="{{ 'ativo' if aba == 'semana' }}">{{ icone("semana", 22) }}<span>Calendário</span></a>
 		<a href="/projetos" class="{{ 'ativo' if aba == 'projetos' }}">{{ icone("projetos", 22) }}<span>Projetos</span></a>
 		<a href="/itens/novo" class="aba-novo">{{ icone("mais", 22) }}<span>Novo</span></a>
 	</nav>

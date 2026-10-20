@@ -15,6 +15,6 @@
 	],
 	"shortcuts": [
 		{ "name": "Novo item", "url": "/itens/novo" },
-		{ "name": "Semana", "url": "/semana" }
+		{ "name": "Calendário", "url": "/semana" }
 	]
 }
