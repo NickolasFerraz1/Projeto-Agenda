@@ -110,7 +110,7 @@ def excluir(projeto_id: int, session: Session = Depends(get_session)):
 def ordenar(projeto_id: int, dados: OrdenarIn, session: Session = Depends(get_session)):
 	"""Grava a ordem escolhida à mão (arrastar): itens diretos ou subprojetos do projeto.
 	Marca o projeto com `ordem_manual`, para o reimportar do plano não desfazer a ordem.
-	Tarefas em ordem (dependentes): as que já têm data são redistribuídas na nova ordem.
+	As tarefas que já têm data são redistribuídas na nova ordem (nos horários guardados do plano).
 	Devolve {"reorganizadas": n} (None = sem horários guardados; só a ordem mudou)."""
 	projeto = get_or_404(session, Projeto, projeto_id)
 	if len(set(dados.ids)) != len(dados.ids):
@@ -127,7 +127,7 @@ def ordenar(projeto_id: int, dados: OrdenarIn, session: Session = Depends(get_se
 	projeto.ordem_manual = True
 	session.commit()
 	reorganizadas = 0
-	if dados.tipo == "itens" and Arvore.carregar(session).em_ordem(projeto_id):
+	if dados.tipo == "itens":  # livre ou em ordem: as tarefas já marcadas seguem a nova ordem
 		reorganizadas = svc_agendar.reorganizar(session, projeto_id)
 		if reorganizadas:
 			svc_agendar.avisar(f"Horários reorganizados na nova ordem ({reorganizadas} tarefa{'s' if reorganizadas > 1 else ''}).")

@@ -123,10 +123,11 @@
 				dlg.showModal();
 			};
 		}
-		// O Sortable carrega com defer: na primeira carga espera; nas navegações do hx-boost já existe
-		const iniciarArrastos = () => { window.iniciarOrdenacao(); window.iniciarArrastarAgenda(); };
-		if (window.Sortable) iniciarArrastos();
-		else document.addEventListener("DOMContentLoaded", iniciarArrastos, { once: true });
+		// O Sortable carrega com defer: na primeira carga espera; nas navegações do hx-boost já existe.
+		// Atenção: este trecho roda de novo a cada navegação — nada de const/let soltos aqui (redeclarar quebra o script).
+		window.iniciarArrastos = window.iniciarArrastos || (() => { window.iniciarOrdenacao(); window.iniciarArrastarAgenda(); });
+		if (window.Sortable) window.iniciarArrastos();
+		else document.addEventListener("DOMContentLoaded", window.iniciarArrastos, { once: true });
 		// Aviso guardado antes de um reload (ex.: mover recusado no calendário)
 		try { const av = sessionStorage.getItem("aviso"); if (av) { sessionStorage.removeItem("aviso"); window.mostrarAviso(av); } } catch (_) {}
 		// Avisos que vieram com a página: somem sozinhos

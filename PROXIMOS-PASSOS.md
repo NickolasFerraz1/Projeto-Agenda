@@ -20,7 +20,7 @@ _Atualizado em 20/10/2026_
 | 6.2 | **Visão de mês** | ✅ seletor Semana \| Mês; grade seg–dom com até 3 itens por dia (+N), no celular pontinhos coloridos; tocar no dia abre o painel com ✓/⏭ e "+ Item" |
 | 6.3 | **Ordenar arrastando** | ✅ alça ⠿ nas tarefas em aberto e nas etapas/subprojetos (mouse e toque); agendamento segue a nova ordem; reimportar o plano não desfaz |
 | 6.3.1 | **Mover arrastando no Calendário** | ✅ Semana (PC e celular, segurar ~¼ s) e Mês (PC): solta → janela "Mover" com dia e hora; recorrente move só aquela ocorrência (Google: EXDATE + evento avulso) |
-| 6.3.2 | **Tarefas em ordem (dependentes)** | ✅ opção no projeto (herdada pelas etapas; planos importados já vêm ligados): reordenar refaz os horários marcados; no calendário a tarefa não passa da anterior/seguinte |
+| 6.3.2 | **Tarefas em ordem (dependentes)** | ✅ opção no projeto (herdada pelas etapas; planos importados já vêm ligados): no calendário a tarefa não passa da anterior/seguinte. Reordenar no projeto refaz os horários marcados em qualquer projeto (livre ou em ordem) |
 | 6.4 | **Botão no Obsidian**: endpoint com token + comando no Obsidian (Shell Commands/QuickAdd) → `/api/planos/importar` | próximo |
 | 6.5 | **Plano com IA**: objetivo → plano no formato do importador → prévia → importar. Decidir modelo/custo; ideia de um modelo especializado em planos | — |
 
@@ -45,11 +45,12 @@ _Atualizado em 20/10/2026_
 
 ### 6.3.2 — como funciona
 - `Projeto.tarefas_em_ordem` (efetivo = ele ou algum ancestral). Migração liga nos planos sequenciais (raiz) que já existiam.
-- Reordenar itens: `agendar.reorganizar` → `planejar(empurrar, so_itens=as já marcadas)` nos horários guardados, a partir da 1ª data; sem horários guardados só a ordem muda (aviso).
+- Reordenar itens (qualquer projeto): `agendar.reorganizar` → `planejar(empurrar, so_itens=as já marcadas)` nos horários guardados, a partir da 1ª data; sem horários guardados só a ordem muda (aviso).
 - `/mover`: recusa (422) se o novo início não fica entre a anterior e a seguinte (em aberto e com data).
-- Projeto livre (desligado): reordenar só vale para o próximo "Agendar"; calendário livre.
+- Projeto livre (desligado): calendário livre (a reorganização ao reordenar vale igual).
+- Cuidado no `base.html`: o script do fim do body roda de novo a cada navegação do hx-boost — nada de `const`/`let` no nível de cima (redeclarar quebra tudo).
 
-103 testes passando. `ASSET_VERSION` = 13.
+104 testes passando. `ASSET_VERSION` = 14.
 
 ## Ao retomar
 1. Conferir se os zips 6.1, 6.2, 6.2.1 e 6.2.2 (app) e 6.1 (espelho) foram extraídos, commitados e atualizados no Pi.

@@ -284,7 +284,7 @@ def test_calendario_nao_passa_da_vizinha(client, area_id):
 	assert r.status_code == 422 and "Aula 1" in r.json()["detail"]
 	r = client.post(f"/mover/{ids['Aula 2']}", data={"data": "2026-11-10"})
 	assert r.status_code == 422 and "Aula 3" in r.json()["detail"]
-	# projeto livre: move para qualquer lugar
+	# projeto livre: no calendário move para qualquer lugar
 	client.patch(f"/api/projetos/{p['id']}", json={"tarefas_em_ordem": False})
 	assert client.post(f"/mover/{ids['Aula 2']}", data={"data": "2026-11-10"}).status_code == 204
 
@@ -295,3 +295,11 @@ def test_plano_importado_vem_em_ordem_e_herda_nas_etapas(client):
 	assert client.get(f"/api/projetos/{pid}").json()["tarefas_em_ordem"] is True
 	s1 = client.get(f"/api/projetos?pai_id={pid}").json()[0]["id"]
 	assert "tarefas em ordem" in client.get(f"/projetos/{s1}").text
+
+
+def test_reordenar_projeto_livre_tambem_refaz_os_horarios(client, area_id):
+	p, ids = _plano_em_ordem(client, area_id)
+	client.patch(f"/api/projetos/{p['id']}", json={"tarefas_em_ordem": False})
+	r = client.post(f"/api/projetos/{p['id']}/ordenar", json={"tipo": "itens", "ids": [ids["Aula 2"], ids["Aula 1"], ids["Aula 3"]]})
+	assert r.json() == {"reorganizadas": 3}
+	assert client.get(f"/api/itens/{ids['Aula 2']}").json()["inicio"] == "2026-11-02T19:00:00"
