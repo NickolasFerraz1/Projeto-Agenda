@@ -243,3 +243,13 @@ def test_salvar_opcao_sem_tarefas_para_agendar(client, area_id):
 	assert "Salvar só os horários" in r.text and "Confirmar agendamento" not in r.text
 	client.post(f"/projetos/{s1['id']}/agendar", data={**dados, "auto": "on"})
 	assert client.get(f"/api/projetos/{piano['id']}").json()["agenda_auto"] is True
+
+
+def test_agendar_segue_a_ordem_arrastada(client, area_id):
+	p = client.post("/api/projetos", json={"nome": "Curso", "area_id": area_id}).json()
+	ids = [client.post("/api/itens", json={"titulo": t, "area_id": area_id, "projeto_id": p["id"], "duracao_min": 30}).json()["id"]
+		for t in ("Aula 1", "Aula 2", "Aula 3")]
+	client.post(f"/api/projetos/{p['id']}/ordenar", json={"tipo": "itens", "ids": [ids[2], ids[0], ids[1]]})
+	r = client.post(f"/api/projetos/{p['id']}/agendar", json={"dias": ["MO"], "hora": "19:00", "minutos": 120,
+		"a_partir": "2026-11-02", "simular": True}).json()
+	assert [e["titulo"] for e in r["encaixes"]] == ["Aula 3", "Aula 1", "Aula 2"]

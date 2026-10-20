@@ -144,3 +144,33 @@ def test_tela_importar(client):
 	r = client.post("/importar/aplicar", data={"texto": PIANO}, follow_redirects=False)
 	assert r.status_code == 303 and r.headers["location"].startswith("/projetos/")
 	assert client.get("/api/planos/prompt?modo=converter").text.startswith("Reescreva")
+
+
+def test_ordem_arrastada_sobrevive_ao_reimportar(client):
+	pid = client.post("/api/planos/importar", json={"texto": PIANO}).json()["projeto_id"]
+	semanas = {p["nome"]: p["id"] for p in client.get(f"/api/projetos?pai_id={pid}").json()}
+	s1 = semanas["Semana 1"]
+	itens = {i["titulo"]: i["id"] for i in client.get(f"/api/projetos/{s1}/itens").json()}
+	nova = [itens["Escala de Dó"], itens["Notas do teclado"], itens["Postura e posição das mãos"]]
+	assert client.post(f"/api/projetos/{s1}/ordenar", json={"tipo": "itens", "ids": nova}).status_code == 204
+	assert client.post(f"/api/projetos/{pid}/ordenar", json={"tipo": "subprojetos", "ids": [semanas["Semana 2"], s1]}).status_code == 204
+	# reimportar (com uma tarefa nova) não desfaz a ordem; a nova vai para o fim
+	client.post("/api/planos/importar", json={"texto": PIANO.replace("- [ ] Escala de Dó", "- [ ] Arpejo | 15min\n- [ ] Escala de Dó")})
+	ordem = sorted(client.get(f"/api/projetos/{s1}/itens").json(), key=lambda i: i["ordem"])
+	assert [i["titulo"] for i in ordem] == ["Escala de Dó", "Notas do teclado", "Postura e posição das mãos", "Arpejo"]
+	subs = client.get(f"/api/projetos?pai_id={pid}").json()
+	assert [p["nome"] for p in subs] == ["Semana 2", "Semana 1"]
+	# página do projeto: alça só nos abertos e aviso de ordem manual
+	html = client.get(f"/projetos/{s1}").text
+	assert html.count('class="alca"') == 3 and 'data-ordenar="itens"' in html and "Ordem arrumada à mão" in html
+
+
+def test_ordenar_valida_ids(client, area_id):
+	a = client.post("/api/projetos", json={"nome": "A", "area_id": area_id}).json()
+	b = client.post("/api/projetos", json={"nome": "B", "area_id": area_id}).json()
+	ia = client.post("/api/itens", json={"titulo": "x", "area_id": area_id, "projeto_id": a["id"]}).json()
+	ib = client.post("/api/itens", json={"titulo": "y", "area_id": area_id, "projeto_id": b["id"]}).json()
+	assert client.post(f"/api/projetos/{a['id']}/ordenar", json={"tipo": "itens", "ids": [ia["id"], ib["id"]]}).status_code == 422
+	assert client.post(f"/api/projetos/{a['id']}/ordenar", json={"tipo": "itens", "ids": [ia["id"], ia["id"]]}).status_code == 422
+	assert client.post(f"/api/projetos/{a['id']}/ordenar", json={"tipo": "outro", "ids": [ia["id"]]}).status_code == 422
+	assert client.post("/api/projetos/999/ordenar", json={"tipo": "itens", "ids": [1]}).status_code == 404

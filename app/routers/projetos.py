@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 from app.db import get_session
 from app.models import Area, Item, Projeto, StatusProjeto
 from app.routers.common import apply_update, check_fk, get_or_404, item_out, projeto_out, replace_links
-from app.schemas import AgendarIn, ItemOut, ProjetoIn, ProjetoOut, ProjetoUpdate
+from app.schemas import AgendarIn, ItemOut, OrdenarIn, ProjetoIn, ProjetoOut, ProjetoUpdate
 from app.services import agendar as svc_agendar
 from app.services.progresso import Arvore, chave_irmaos
 
@@ -103,6 +103,26 @@ def excluir(projeto_id: int, session: Session = Depends(get_session)):
 		item.projeto_id = projeto.pai_id
 	session.flush()
 	session.delete(projeto)
+	session.commit()
+
+
+@router.post("/{projeto_id}/ordenar", status_code=204)
+def ordenar(projeto_id: int, dados: OrdenarIn, session: Session = Depends(get_session)):
+	"""Grava a ordem escolhida à mão (arrastar): itens diretos ou subprojetos do projeto.
+	Marca o projeto com `ordem_manual`, para o reimportar do plano não desfazer a ordem."""
+	projeto = get_or_404(session, Projeto, projeto_id)
+	if len(set(dados.ids)) != len(dados.ids):
+		raise HTTPException(422, "ids repetidos")
+	if dados.tipo == "itens":
+		filhos = {i.id: i for i in session.exec(select(Item).where(Item.projeto_id == projeto_id)).all()}
+	else:
+		filhos = {p.id: p for p in session.exec(select(Projeto).where(Projeto.pai_id == projeto_id)).all()}
+	estranhos = [i for i in dados.ids if i not in filhos]
+	if estranhos:
+		raise HTTPException(422, f"não pertencem a este projeto: {estranhos}")
+	for n, fid in enumerate(dados.ids, start=1):
+		filhos[fid].ordem = n
+	projeto.ordem_manual = True
 	session.commit()
 
 

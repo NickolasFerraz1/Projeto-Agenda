@@ -54,11 +54,12 @@
 		<a class="btn-sec" href="/projetos/novo?pai_id={{ p.id }}">{{ icone("mais", 16) }} Subprojeto</a>
 	</div>
 	{% if subprojetos %}
-	<ul class="cartoes cartoes-sub">
+	<ul class="cartoes cartoes-sub" {% if subprojetos|length > 1 %}data-ordenar="subprojetos" data-projeto="{{ p.id }}"{% endif %}>
 		{% for s in subprojetos %}
 		{% set sa = areas|selectattr("id", "equalto", s.area_id)|first %}
 		{% set concl = (s.status|v) == "concluido" or (s.progresso or 0) >= 100 %}
-		<li>
+		<li data-id="{{ s.id }}" class="{{ 'com-alca' if subprojetos|length > 1 }}">
+			{% if subprojetos|length > 1 %}<span class="alca" title="Arraste para reordenar" aria-hidden="true">⠿</span>{% endif %}
 			<a class="cartao {{ 'bloqueado' if s.bloqueado }} {{ 'concluido' if concl }}" href="/projetos/{{ s.id }}" style="--cor: {{ sa.cor if sa else '#888' }}">
 				<span class="cartao-titulo">
 					{%- if s.bloqueado %}{{ icone("cadeado", 14) }} {% elif concl %}{{ icone("check", 14) }} {% elif p.sequencial %}{{ icone("play", 14) }} {% endif -%}
@@ -85,7 +86,10 @@
 		<a class="btn-sec" href="/itens/novo?projeto_id={{ p.id }}">{{ icone("mais", 16) }} Item</a>
 	</div>
 	{% if abertos %}
-	<ul class="lista">{% for i in abertos %}{% include "partials/linha_item.html" %}{% endfor %}</ul>
+	{% set ordenavel = abertos|length > 1 %}
+	<ul class="lista" {% if ordenavel %}data-ordenar="itens" data-projeto="{{ p.id }}"{% endif %}>{% for i in abertos %}{% include "partials/linha_item.html" %}{% endfor %}</ul>
+	{% set ordenavel = false %}
+	{% if p.ordem_manual %}<p class="dica">Ordem arrumada à mão: reimportar o plano não muda a ordem.</p>{% endif %}
 	{% else %}
 	<p class="vazio">Nenhum item direto aqui.</p>
 	{% endif %}

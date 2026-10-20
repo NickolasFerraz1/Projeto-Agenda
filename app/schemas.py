@@ -1,5 +1,6 @@
 """Formatos de entrada e saída da API."""
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, NaiveDatetime, field_validator, model_validator
 
@@ -99,6 +100,7 @@ class ProjetoOut(ProgressoOut):
 	caminho: str = ""  # "Pós FIAP › Fase 3 › CI/CD"
 	ordem: int
 	sequencial: bool
+	ordem_manual: bool = False  # filhos reordenados à mão (arrastar)
 	bloqueado: bool = False  # travado por um pai sequencial
 	agenda_dias: str | None = None  # horários de estudo (Agendar)
 	agenda_hora: str | None = None
@@ -112,6 +114,13 @@ class ProjetoOut(ProgressoOut):
 	links: list[LinkOut] = []
 	criado_em: datetime
 	atualizado_em: datetime
+
+
+class OrdenarIn(BaseModel):
+	"""Nova ordem dos filhos de um projeto (arrastar na página do projeto)."""
+
+	tipo: Literal["itens", "subprojetos"]
+	ids: list[int] = Field(min_length=1)
 
 
 class AgendarIn(BaseModel):

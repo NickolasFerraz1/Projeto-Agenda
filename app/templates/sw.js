@@ -6,6 +6,7 @@ const ESTATICOS = [
 	"/static/app.css?v={{ VERSAO }}",
 	"/static/vendor/htmx-2.0.4.min.js?v={{ VERSAO }}",
 	"/static/vendor/alpine-3.14.8.min.js?v={{ VERSAO }}",
+	"/static/vendor/sortable-1.15.6.min.js?v={{ VERSAO }}",
 	"/static/icons/icon-192.png?v={{ VERSAO }}",
 	"/static/icons/icon-512.png",
 ];

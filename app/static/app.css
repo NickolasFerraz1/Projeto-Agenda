@@ -411,3 +411,15 @@ code { background: var(--sup2); border-radius: 4px; padding: 1px 5px; font-size:
 .painel-dia header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .painel-dia h2 { font-size: 16px; margin: 0; }
 .painel-dia h2::first-letter { text-transform: uppercase; }
+
+/* ---------- Arrastar para reordenar ---------- */
+.alca {
+	cursor: grab; touch-action: none; user-select: none; color: var(--fraco); font-size: 18px; line-height: 1;
+	padding: 6px 2px; display: grid; place-items: center;
+}
+.alca:active { cursor: grabbing; }
+.linha-item.com-alca { grid-template-columns: 16px auto 52px 1fr auto; }
+.cartoes-sub > li.com-alca { display: flex; align-items: stretch; gap: 6px; }
+.cartoes-sub > li.com-alca > .cartao { flex: 1; min-width: 0; }
+.arrastando { opacity: .4; }
+.sortable-chosen .linha-item, .sortable-chosen.linha-item, .sortable-chosen > .cartao { box-shadow: 0 6px 20px rgb(0 0 0 / .45); }

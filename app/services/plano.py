@@ -387,7 +387,9 @@ def _aplicar_tarefa(session: Session, t: TarefaPlano, projeto: Projeto, ordem: i
 		if _chave(it.titulo) == _chave(t.titulo):
 			existente = it
 			break
-	campos: dict = {"ordem": ordem}
+	campos: dict = {} if projeto.ordem_manual else {"ordem": ordem}  # ordem arrumada no app prevalece
+	if existente is None and projeto.ordem_manual:  # novo num projeto com ordem manual: vai para o fim
+		campos["ordem"] = max((i.ordem for i in session.exec(select(Item).where(Item.projeto_id == projeto.id))), default=0) + 1
 	# Só sobrescreve o que o plano informa (notas/duração colocadas no app ficam)
 	if t.duracao_min:
 		campos["duracao_min"] = t.duracao_min
@@ -425,7 +427,9 @@ def _aplicar_tarefa(session: Session, t: TarefaPlano, projeto: Projeto, ordem: i
 
 def _aplicar_etapa(session: Session, etapa: EtapaPlano, pai: Projeto, ordem: int, rel: Relatorio) -> Projeto:
 	proj = _achar_projeto(session, pai.id, etapa.nome)
-	campos = {"ordem": ordem}
+	campos = {} if pai.ordem_manual else {"ordem": ordem}  # ordem arrumada no app prevalece
+	if proj is None and pai.ordem_manual:
+		campos["ordem"] = max((p.ordem for p in session.exec(select(Projeto).where(Projeto.pai_id == pai.id))), default=0) + 1
 	if etapa.notas:
 		campos["notas"] = _notas(etapa.notas)
 	if proj is None:

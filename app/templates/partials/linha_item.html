@@ -7,7 +7,9 @@
 {% set qtd = (i.progresso_modo|v) == "quantidade" %}
 {% set q = "?rel=%d" % rel if rel else "" %}
 {% set prio_rel = prio_rel|default("") %}{# prioridade igual à do projeto da página: não repete a etiqueta #}
-<li class="linha-item {{ 'feito' if feito }}" style="--cor: {{ area.cor if area else '#888' }}">
+{% set alca = ordenavel|default(false) and not feito %}
+<li class="linha-item {{ 'feito' if feito }} {{ 'com-alca' if alca }}" data-id="{{ i.id }}" style="--cor: {{ area.cor if area else '#888' }}">
+	{% if alca %}<span class="alca" title="Arraste para reordenar" aria-hidden="true">⠿</span>{% endif %}
 	{% if not i.recorrencia %}
 	<button class="marcar" aria-label="{{ 'Desmarcar' if feito else 'Marcar como feito' }}"
 		hx-post="/alternar/{{ i.id }}{{ q }}" hx-target="closest li" hx-swap="outerHTML">{{ icone("check", 14) }}</button>

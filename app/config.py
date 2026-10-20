@@ -26,7 +26,7 @@ DB_PATH = Path(os.environ.get("AGENDA_DB", ROOT / "data" / "agenda.db"))
 TIMEZONE = os.environ.get("AGENDA_TZ", "America/Sao_Paulo")
 
 # Versão dos arquivos estáticos: trocar ao mudar CSS/JS/ícones (renova o cache do PWA).
-ASSET_VERSION = "10"
+ASSET_VERSION = "11"
 
 # Áreas criadas no primeiro uso (editáveis depois).
 AREAS_PADRAO = [

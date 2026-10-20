@@ -81,6 +81,7 @@ class Projeto(ProgressoCampos, Timestamps, table=True):
 	pai_id: int | None = Field(default=None, foreign_key="projeto.id", index=True, ondelete="SET NULL")  # subprojeto
 	ordem: int = 0  # posição entre os irmãos (0 = ordem natural pelo nome)
 	sequencial: bool = False  # subprojetos liberam um de cada vez, na ordem
+	ordem_manual: bool = False  # filhos reordenados à mão no app: reimportar o plano não mexe na ordem
 	progresso_modo: ProgressoModo = ProgressoModo.itens  # projetos: automático por padrão
 	# Horários de estudo para "Agendar" (guardados no plano e herdados pelas etapas)
 	agenda_dias: str | None = None  # "MO,WE,FR"

@@ -14,6 +14,7 @@
 	<link rel="stylesheet" href="/static/app.css?v={{ VERSAO }}">
 	<script src="/static/vendor/htmx-2.0.4.min.js?v={{ VERSAO }}" defer></script>
 	<script src="/static/vendor/alpine-3.14.8.min.js?v={{ VERSAO }}" defer></script>
+	<script src="/static/vendor/sortable-1.15.6.min.js?v={{ VERSAO }}" defer></script>
 </head>
 {% set aba = aba|default("") %}
 <body hx-boost="true" hx-headers='{"X-Agenda-Versao": "{{ VERSAO }}"}'>
@@ -60,7 +61,26 @@
 			document.body.addEventListener("aviso", (e) => [].concat(e.detail.value || []).forEach(window.mostrarAviso));
 			// Sem rede numa navegação do HTMX: mostra a página "sem conexão" (servida pelo cache)
 			document.addEventListener("htmx:sendError", () => { location.href = "/offline"; });
+			// Arrastar para reordenar (página do projeto): listas com data-ordenar="itens|subprojetos"
+			window.iniciarOrdenacao = () => document.querySelectorAll("[data-ordenar]:not([data-pronto])").forEach((ul) => {
+				ul.dataset.pronto = "1";
+				Sortable.create(ul, {
+					handle: ".alca", animation: 150, ghostClass: "arrastando",
+					onEnd: (ev) => {
+						if (ev.oldIndex === ev.newIndex) return;
+						const ids = [...ul.querySelectorAll(":scope > [data-id]")].map((li) => Number(li.dataset.id));
+						fetch(`/api/projetos/${ul.dataset.projeto}/ordenar`, {
+							method: "POST", headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({ tipo: ul.dataset.ordenar, ids }),
+						}).then((r) => { if (!r.ok) throw new Error(r.status); })
+							.catch(() => window.mostrarAviso("Não consegui salvar a nova ordem. Recarregue a página."));
+					},
+				});
+			});
 		}
+		// O Sortable carrega com defer: na primeira carga espera; nas navegações do hx-boost já existe
+		if (window.Sortable) window.iniciarOrdenacao();
+		else document.addEventListener("DOMContentLoaded", () => window.iniciarOrdenacao(), { once: true });
 		// Avisos que vieram com a página: somem sozinhos
 		document.querySelectorAll("#toasts .toast").forEach((t) => setTimeout(() => t.remove(), 9000));
 	</script>
