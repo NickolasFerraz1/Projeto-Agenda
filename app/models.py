@@ -50,6 +50,7 @@ class ProgressoModo(str, Enum):
 
 
 class StatusOcorrencia(str, Enum):
+	a_fazer = "a_fazer"  # registro só para guardar um horário diferente (ocorrência movida)
 	concluido = "concluido"
 	pulado = "pulado"
 
@@ -127,6 +128,9 @@ class Ocorrencia(SQLModel, table=True):
 
 	id: int | None = Field(default=None, primary_key=True)
 	item_id: int = Field(foreign_key="item.id", index=True, ondelete="CASCADE")
-	data: date = Field(index=True)
+	data: date = Field(index=True)  # dia original da ocorrência (pela regra)
 	status: StatusOcorrencia
 	nota: str | None = None
+	# Movida só neste dia (arrastar no calendário): novo início/fim; None = horário da regra
+	inicio: NaiveDatetime | None = Field(default=None, index=True)
+	fim: NaiveDatetime | None = None

@@ -162,3 +162,21 @@ def test_dia_pulado_vira_exdate(client, area_id):
 	client.post(f"/pular/{aula['id']}?dia=2026-10-22")  # desfaz um
 	_sync(g)
 	assert g.por_chave()[f"item:{aula['id']}"]["recurrence"][1].endswith(":20261027T190000")
+
+
+def test_ocorrencia_movida_vira_evento_avulso(client, area_id):
+	g = GoogleFalso()
+	acad = client.post("/api/itens", json={"titulo": "Academia", "area_id": area_id, "inicio": "2026-11-02T14:00:00",
+		"fim": "2026-11-02T15:00:00", "recorrencia": "FREQ=DAILY"}).json()
+	client.post(f"/mover/{acad['id']}", data={"data": "2026-11-03", "hora": "21:00", "orig": "2026-11-03"})
+	_sync(g)
+	ev = g.por_chave()
+	assert ev[f"item:{acad['id']}"]["recurrence"][1] == "EXDATE;TZID=America/Sao_Paulo:20261103T140000"
+	mov = ev[f"mov:{acad['id']}:20261103"]
+	assert mov["start"]["dateTime"] == "2026-11-03T21:00:00" and mov["end"]["dateTime"] == "2026-11-03T22:00:00"
+	client.post(f"/alternar/{acad['id']}?tipo=agendado&dia=2026-11-03")
+	_sync(g)
+	assert g.por_chave()[f"mov:{acad['id']}:20261103"]["summary"] == "✓ Academia"
+	client.post(f"/mover/{acad['id']}", data={"data": "2026-11-03", "orig": "2026-11-03"})  # volta ao normal (segue feita)
+	_sync(g)
+	assert f"mov:{acad['id']}:20261103" not in g.por_chave()

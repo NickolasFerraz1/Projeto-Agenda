@@ -9,7 +9,7 @@ _Atualizado em 20/10/2026_
   - 5.4 Google Agenda (só o Pi sincroniza; PC e notebook com `AGENDA_GCAL_ID` comentado)
   - 5.5 espelho lendo `/api/hoje` e `/api/agenda` (repo MagicMirror)
 - App instalado como PWA no notebook e no celular (falta o PC): `https://magicmirror.tailc1dcbd.ts.net`.
-- **6.1 Pular dia de recorrente** ✅ · **6.2 Visão de mês** ✅ · **6.3 Ordenar arrastando** ✅ (ver abaixo).
+- **6.1 Pular dia de recorrente** ✅ · **6.2 Visão de mês** ✅ · **6.3 Ordenar arrastando** ✅ · **6.3.1 Mover arrastando no Calendário** ✅ (ver abaixo).
 - Aba **Semana** renomeada para **Calendário** (dentro: seletor Semana | Mês).
 - App recarrega sozinho quando o servidor foi atualizado com a janela aberta (cabeçalho `X-Agenda-Versao` → `HX-Refresh`).
 
@@ -19,6 +19,7 @@ _Atualizado em 20/10/2026_
 | 6.1 | **Pular dia de recorrente** | ✅ botão ⏭ na linha da agenda (Hoje/Semana); pulado ≠ feito; no Google o dia some (EXDATE); no espelho fica tracejado e libera o horário |
 | 6.2 | **Visão de mês** | ✅ seletor Semana \| Mês; grade seg–dom com até 3 itens por dia (+N), no celular pontinhos coloridos; tocar no dia abre o painel com ✓/⏭ e "+ Item" |
 | 6.3 | **Ordenar arrastando** | ✅ alça ⠿ nas tarefas em aberto e nas etapas/subprojetos (mouse e toque); agendamento segue a nova ordem; reimportar o plano não desfaz |
+| 6.3.1 | **Mover arrastando no Calendário** | ✅ Semana (PC e celular, segurar ~¼ s) e Mês (PC): solta → janela "Mover" com dia e hora; recorrente move só aquela ocorrência (Google: EXDATE + evento avulso) |
 | 6.4 | **Botão no Obsidian**: endpoint com token + comando no Obsidian (Shell Commands/QuickAdd) → `/api/planos/importar` | próximo |
 | 6.5 | **Plano com IA**: objetivo → plano no formato do importador → prévia → importar. Decidir modelo/custo; ideia de um modelo especializado em planos | — |
 
@@ -36,7 +37,12 @@ _Atualizado em 20/10/2026_
 - O projeto ganha `ordem_manual`: o importador mantém a ordem dos existentes e põe os novos no fim.
 - Num plano sequencial, mudar a ordem das etapas muda qual etapa está liberada.
 
-97 testes passando. `ASSET_VERSION` = 11.
+### 6.3.1 — como funciona
+- `POST /mover/{id}` (form `data`, `hora` opcional, `orig` para recorrente). Item normal: muda início/fim mantendo a duração. Prazo sem horário não arrasta.
+- Recorrente: `Ocorrencia` ganhou `inicio`/`fim` (horário só daquele dia) e o status `a_fazer`; "Voltar ao horário de sempre" na janela desfaz.
+- `/api/agenda` devolve `ocorrencia_data` (dia original) e `movida`; ✓/⏭ usam o dia original.
+
+100 testes passando. `ASSET_VERSION` = 12.
 
 ## Ao retomar
 1. Conferir se os zips 6.1, 6.2, 6.2.1 e 6.2.2 (app) e 6.1 (espelho) foram extraídos, commitados e atualizados no Pi.

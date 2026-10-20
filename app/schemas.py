@@ -259,6 +259,8 @@ class Entrada(BaseModel):
 	projeto_id: int | None
 	projeto_nome: str | None
 	projeto_caminho: str | None = None  # "Piano › Semana 2"
+	ocorrencia_data: date | None = None  # recorrente: dia original da ocorrência (ações ✓/⏭/mover usam este)
+	movida: bool = False  # recorrente movida só neste dia
 	duracao_min: int | None = None
 	progresso: float | None
 

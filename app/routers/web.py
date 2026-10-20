@@ -263,17 +263,29 @@ async def captura(request: Request, session: Session = Depends(get_session)):
 
 # ---------- Marcar como feito ----------
 def _linha_entrada(session: Session, item: Item, tipo: str, dia: date):
+	"""A linha da agenda depois de uma ação. Recorrente: `dia` é o dia ORIGINAL da ocorrência
+	(se ela foi movida, a linha mostra o horário novo)."""
 	areas = {a.id: a for a in session.exec(select(Area)).all()}
 	projetos = {p.id: p for p in session.exec(select(Projeto)).all()}
 	if item.recorrencia:
 		oc = session.exec(select(Ocorrencia).where(Ocorrencia.item_id == item.id, Ocorrencia.data == dia)).first()
+		status = oc.status.value if oc else "a_fazer"
+		if oc and oc.inicio:
+			return api_agenda._entrada(item, "agendado", oc.inicio.date(), oc.inicio, oc.fim, status, areas, projetos, session, oc_data=dia, movida=True)
 		inicio = datetime.combine(dia, item.inicio.time())
 		dur = recorrencia.duracao(item.inicio, item.fim)
-		status = oc.status.value if oc else "a_fazer"
-		return api_agenda._entrada(item, "agendado", dia, inicio, inicio + dur if dur else None, status, areas, projetos, session)
+		return api_agenda._entrada(item, "agendado", dia, inicio, inicio + dur if dur else None, status, areas, projetos, session, oc_data=dia)
 	inicio = item.prazo if tipo == "prazo" else item.inicio
 	fim = None if tipo == "prazo" else item.fim
 	return api_agenda._entrada(item, tipo, dia, inicio, fim, item.status.value, areas, projetos, session)
+
+
+def _ocorrencia_sem_registro(session: Session, oc: Ocorrencia) -> None:
+	"""Volta a ocorrência a "a fazer": apaga o registro, a não ser que ele guarde um horário movido."""
+	if oc.inicio:
+		oc.status = StatusOcorrencia.a_fazer
+	else:
+		session.delete(oc)
 
 
 @router.post("/alternar/{item_id}", response_class=HTMLResponse)
@@ -290,7 +302,7 @@ def alternar(
 	if item.recorrencia and dia:
 		oc = session.exec(select(Ocorrencia).where(Ocorrencia.item_id == item_id, Ocorrencia.data == dia)).first()
 		if oc and oc.status == StatusOcorrencia.concluido:
-			session.delete(oc)  # desmarca
+			_ocorrencia_sem_registro(session, oc)  # desmarca
 		elif oc:
 			oc.status = StatusOcorrencia.concluido  # estava pulado: passa a feito
 		else:
@@ -320,13 +332,63 @@ def pular(request: Request, item_id: int, dia: date, session: Session = Depends(
 		raise HTTPException(422, "este item não acontece nesse dia")
 	oc = session.exec(select(Ocorrencia).where(Ocorrencia.item_id == item_id, Ocorrencia.data == dia)).first()
 	if oc and oc.status == StatusOcorrencia.pulado:
-		session.delete(oc)
+		_ocorrencia_sem_registro(session, oc)
 	elif oc:
 		oc.status = StatusOcorrencia.pulado
 	else:
 		session.add(Ocorrencia(item_id=item_id, data=dia, status=StatusOcorrencia.pulado))
 	session.commit()
 	return render(request, "partials/linha_entrada.html", e=_linha_entrada(session, item, "agendado", dia))
+
+
+@router.post("/mover/{item_id}")
+async def mover(request: Request, item_id: int, session: Session = Depends(get_session)):
+	"""Arrastar no calendário: muda data (e hora) de um item.
+	Form: `data` (AAAA-MM-DD), `hora` (HH:MM, opcional: mantém a atual) e, para recorrentes,
+	`orig` (dia original da ocorrência): move SÓ essa ocorrência; as outras seguem a regra."""
+	form = await request.form()
+	item = get_or_404(session, Item, item_id)
+	try:
+		nova_data = date.fromisoformat(str(form.get("data") or ""))
+		hora_txt = str(form.get("hora") or "").strip()
+		nova_hora = time.fromisoformat(hora_txt) if hora_txt else None
+	except ValueError:
+		raise HTTPException(422, "data ou hora inválida")
+	if item.recorrencia:
+		try:
+			orig = date.fromisoformat(str(form.get("orig") or ""))
+		except ValueError:
+			raise HTTPException(422, "informe o dia original da ocorrência (orig)")
+		if not recorrencia.ocorrencias(item.recorrencia, item.inicio, orig, orig):
+			raise HTTPException(422, "este item não acontece nesse dia")
+		padrao = datetime.combine(orig, item.inicio.time())
+		novo = datetime.combine(nova_data, time(0, 0) if item.dia_inteiro else (nova_hora or item.inicio.time()))
+		dur = recorrencia.duracao(item.inicio, item.fim)
+		oc = session.exec(select(Ocorrencia).where(Ocorrencia.item_id == item_id, Ocorrencia.data == orig)).first()
+		if novo == padrao:  # voltou para o horário da regra
+			if oc:
+				oc.inicio = oc.fim = None
+				if oc.status == StatusOcorrencia.a_fazer:
+					session.delete(oc)
+		else:
+			if oc is None:
+				oc = Ocorrencia(item_id=item_id, data=orig, status=StatusOcorrencia.a_fazer)
+				session.add(oc)
+			oc.inicio, oc.fim = novo, (novo + dur if dur else None)
+	else:
+		if not item.inicio:
+			raise HTTPException(422, "só itens com data podem ser movidos (prazos mudam no Editar)")
+		if item.dia_inteiro:
+			novo = datetime.combine(nova_data, time(0, 0))
+		else:
+			novo = datetime.combine(nova_data, nova_hora or item.inicio.time())
+		delta = novo - item.inicio
+		item.inicio = novo
+		if item.fim:
+			item.fim = item.fim + delta
+		item.atualizado_em = datetime.now()
+	session.commit()
+	return Response(status_code=204)
 
 
 @router.post("/incrementar/{item_id}", response_class=HTMLResponse)

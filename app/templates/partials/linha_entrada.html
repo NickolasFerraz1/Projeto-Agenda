@@ -2,9 +2,12 @@
 {# Uma linha da agenda (Entrada). Recorrente: o "feito" vale só para o dia. #}
 {% set feito = e.status == "concluido" %}
 {% set pulado = e.status == "pulado" %}
-<li class="linha-item {{ 'feito' if feito }} {{ 'pulado' if pulado }} {{ 'e-prazo' if e.tipo_entrada == 'prazo' }}" style="--cor: {{ e.area_cor }}">
+{% set dia_acao = e.ocorrencia_data or e.data %}{# recorrente: ações usam o dia original da ocorrência #}
+<li class="linha-item {{ 'feito' if feito }} {{ 'pulado' if pulado }} {{ 'e-prazo' if e.tipo_entrada == 'prazo' }} {{ 'movida' if e.movida }}" style="--cor: {{ e.area_cor }}"
+	{%- if e.tipo_entrada == "agendado" and e.inicio %} data-movivel data-item="{{ e.item_id }}" data-titulo="{{ e.titulo }}" data-data="{{ e.data.isoformat() }}"
+	data-hora="{{ '' if e.dia_inteiro else e.inicio.strftime('%H:%M') }}"{% if e.recorrente %} data-orig="{{ dia_acao.isoformat() }}"{% endif %}{% if e.movida %} data-movida{% endif %}{% endif %}>
 	<button class="marcar" aria-label="{{ 'Desmarcar' if feito else 'Marcar como feito' }}"
-		hx-post="/alternar/{{ e.item_id }}?tipo={{ e.tipo_entrada }}&dia={{ e.data.isoformat() }}"
+		hx-post="/alternar/{{ e.item_id }}?tipo={{ e.tipo_entrada }}&dia={{ dia_acao.isoformat() }}"
 		hx-target="closest li" hx-swap="outerHTML">{{ icone("pular" if pulado else "check", 14) }}</button>
 	<span class="quando">
 		{%- if e.tipo_entrada == "prazo" %}<span class="tag-prazo">{{ icone("prazo", 12) }} prazo</span>{% if e.inicio and e.inicio.strftime('%H:%M') != '23:59' %}<br>{{ e.inicio|hora }}{% endif %}
@@ -18,6 +21,7 @@
 			{%- if e.duracao_min and not e.fim %} · {{ e.duracao_min|duracao }}{% endif %}
 			{%- if e.recorrente %} · {{ icone("repete", 12) }}{% endif %}
 			{%- if pulado %} · pulado{% endif %}
+			{%- if e.movida %} · só hoje neste horário{% endif %}
 			{{ prioridade(e.prioridade) }}
 			{{ barra(e.progresso) }}
 		</span>
@@ -25,8 +29,8 @@
 	{% if e.recorrente and e.tipo_entrada == "agendado" and not feito %}
 	<span class="botoes-linha">
 		<button class="btn-pular {{ 'on' if pulado }}" title="{{ 'Desfazer: não pulou' if pulado else 'Pular este dia' }}"
-			aria-label="{{ 'Desfazer pular' if pulado else 'Pular' }} {{ e.titulo }} em {{ e.data|dia }}"
-			hx-post="/pular/{{ e.item_id }}?dia={{ e.data.isoformat() }}" hx-target="closest li" hx-swap="outerHTML">{{ icone("pular", 14) }}</button>
+			aria-label="{{ 'Desfazer pular' if pulado else 'Pular' }} {{ e.titulo }} em {{ dia_acao|dia }}"
+			hx-post="/pular/{{ e.item_id }}?dia={{ dia_acao.isoformat() }}" hx-target="closest li" hx-swap="outerHTML">{{ icone("pular", 14) }}</button>
 	</span>
 	{% endif %}
 </li>

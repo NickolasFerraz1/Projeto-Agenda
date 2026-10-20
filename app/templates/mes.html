@@ -16,15 +16,17 @@
 	{% for n in ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"] %}<div class="mes-semana-nome {{ 'fds' if loop.index > 5 }}" role="columnheader">{{ n }}</div>{% endfor %}
 	{% for semana in semanas %}{% for d in semana %}
 	{% set es = por_dia.get(d, []) %}
-	<a class="mes-dia {{ 'fora' if d.month != primeiro.month }} {{ 'hoje' if d == hoje }} {{ 'passado' if d < hoje }} {{ 'sel' if d == dia_sel }} {{ 'fds' if d.weekday() > 4 }}"
+	<a draggable="false" class="mes-dia {{ 'fora' if d.month != primeiro.month }} {{ 'hoje' if d == hoje }} {{ 'passado' if d < hoje }} {{ 'sel' if d == dia_sel }} {{ 'fds' if d.weekday() > 4 }}"
 		href="/mes?m={{ primeiro.strftime('%Y-%m') }}&dia={{ d.isoformat() }}"
 		hx-get="/mes/dia/{{ d.isoformat() }}" hx-target="#painel-dia" hx-swap="outerHTML" hx-push-url="/mes?m={{ primeiro.strftime('%Y-%m') }}&dia={{ d.isoformat() }}"
 		onclick="document.querySelectorAll('.mes-dia.sel').forEach(c => c.classList.remove('sel')); this.classList.add('sel')"
 		role="gridcell" aria-label="{{ d|dia }}: {{ es|length }} {{ 'item' if es|length == 1 else 'itens' }}">
 		<span class="mes-num">{{ d.day }}</span>
-		<span class="mes-itens">
+		<span class="mes-itens" data-arrastar-dia="{{ d.isoformat() }}">
 			{% for e in es[:3] %}
-			<span class="mes-item {{ 'feito' if e.status in ('concluido', 'pulado') }} {{ 'e-prazo' if e.tipo_entrada == 'prazo' }}" style="--cor: {{ e.area_cor }}">
+			<span class="mes-item {{ 'feito' if e.status in ('concluido', 'pulado') }} {{ 'e-prazo' if e.tipo_entrada == 'prazo' }}" style="--cor: {{ e.area_cor }}"
+				{%- if e.tipo_entrada == "agendado" and e.inicio %} data-movivel data-item="{{ e.item_id }}" data-titulo="{{ e.titulo }}" data-data="{{ e.data.isoformat() }}"
+				data-hora="{{ '' if e.dia_inteiro else e.inicio.strftime('%H:%M') }}"{% if e.recorrente %} data-orig="{{ (e.ocorrencia_data or e.data).isoformat() }}"{% endif %}{% if e.movida %} data-movida{% endif %}{% endif %}>
 				<span class="mes-hora">{% if e.tipo_entrada == "prazo" %}⏰{% elif e.dia_inteiro %}{% else %}{{ e.inicio|hora }}{% endif %}</span>
 				<span class="mes-titulo">{{ e.titulo }}</span>
 			</span>
@@ -36,4 +38,5 @@
 </div>
 
 {% include "partials/mes_dia.html" %}
+{% include "partials/mover_dialogo.html" %}
 {% endblock %}

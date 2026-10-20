@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
 from app.db import get_session
-from app.models import Area, Item, Ocorrencia, Projeto, StatusItem, TipoItem
+from app.models import Area, Item, Ocorrencia, Projeto, StatusItem, StatusOcorrencia, TipoItem
 from app.routers.common import apply_update, check_fk, get_or_404, item_out, replace_links
 from app.schemas import ItemIn, ItemOut, ItemUpdate, OcorrenciaIn, OcorrenciaOut
 from app.services import agendar, recorrencia
@@ -135,5 +135,8 @@ def desmarcar_ocorrencia(item_id: int, dia: date, session: Session = Depends(get
 	oc = session.exec(select(Ocorrencia).where(Ocorrencia.item_id == item_id, Ocorrencia.data == dia)).first()
 	if oc is None:
 		raise HTTPException(404, "nada registrado nesse dia")
-	session.delete(oc)
+	if oc.inicio:  # ocorrência movida: mantém o horário novo, só volta a "a fazer"
+		oc.status = StatusOcorrencia.a_fazer
+	else:
+		session.delete(oc)
 	session.commit()

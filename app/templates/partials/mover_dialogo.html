@@ -1,0 +1,16 @@
+{# Janela aberta ao soltar um item arrastado no calendário (Semana/Mês). Preenchida pelo script do base.html. #}
+<dialog id="mover" class="dialogo">
+	<form method="dialog" id="mover-form">
+		<h2 id="mover-titulo">Mover</h2>
+		<p class="dica" id="mover-rec" hidden>Só esta ocorrência muda; as outras continuam no horário de sempre.</p>
+		<div class="linha">
+			<label>Dia <input type="date" name="data" required></label>
+			<label class="estreito" id="mover-hora-campo">Hora <input type="time" name="hora"></label>
+		</div>
+		<button type="button" class="link-sutil" id="mover-voltar" hidden>Voltar ao horário de sempre</button>
+		<div class="acoes">
+			<button class="btn" value="ok">Mover</button>
+			<button class="btn-sec" value="cancelar" formnovalidate>Cancelar</button>
+		</div>
+	</form>
+</dialog>

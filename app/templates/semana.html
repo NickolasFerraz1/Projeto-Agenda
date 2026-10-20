@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icone %}
 {% set aba = "semana" %}
-{% block titulo %}Semana · Agenda{% endblock %}
+{% block titulo %}Semana · Agenda{% include "partials/mover_dialogo.html" %}
+{% endblock %}
 {% block conteudo %}
 {% set vista = "semana" %}{% set ref = seg if not (seg <= hoje <= dom) else hoje %}
 {% include "partials/vista_alternar.html" %}
@@ -19,14 +20,12 @@
 			<h2>{{ d|dia }}</h2>
 			<a class="btn-icone" href="/itens/novo?data={{ d.isoformat() }}&voltar={{ ('/semana?inicio=' ~ seg.isoformat())|urlencode }}" aria-label="Novo item em {{ d|dia }}">{{ icone("mais", 16) }}</a>
 		</header>
-		{% if entradas %}
-		<ul class="lista">
+		<ul class="lista" data-arrastar-dia="{{ d.isoformat() }}">
 			{% for e in entradas %}{% include "partials/linha_entrada.html" %}{% endfor %}
 		</ul>
-		{% else %}
-		<p class="vazio">—</p>
-		{% endif %}
+		{% if not entradas %}<p class="vazio">—</p>{% endif %}
 	</section>
 	{% endfor %}
 </div>
+{% include "partials/mover_dialogo.html" %}
 {% endblock %}

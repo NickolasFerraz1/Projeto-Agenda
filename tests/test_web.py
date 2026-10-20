@@ -206,3 +206,50 @@ def test_versao_antiga_recarrega_a_pagina(client):
 	antiga = {**atual, "X-Agenda-Versao": "1"}
 	assert client.get("/mes", headers=antiga).headers["HX-Refresh"] == "true"
 	assert "HX-Refresh" not in client.get("/mes", headers={"X-Agenda-Versao": "1"}).headers  # navegação normal
+
+
+def test_mover_item_arrastando(client, area_id):
+	it = client.post("/api/itens", json={"titulo": "Reunião", "area_id": area_id, "inicio": "2026-11-04T14:00:00",
+		"fim": "2026-11-04T15:30:00"}).json()
+	# outro dia, mesma hora: duração mantida
+	assert client.post(f"/mover/{it['id']}", data={"data": "2026-11-06"}).status_code == 204
+	novo = client.get(f"/api/itens/{it['id']}").json()
+	assert (novo["inicio"], novo["fim"]) == ("2026-11-06T14:00:00", "2026-11-06T15:30:00")
+	# outro horário
+	client.post(f"/mover/{it['id']}", data={"data": "2026-11-06", "hora": "21:00"})
+	novo = client.get(f"/api/itens/{it['id']}").json()
+	assert (novo["inicio"], novo["fim"]) == ("2026-11-06T21:00:00", "2026-11-06T22:30:00")
+	# dia inteiro: só a data; só prazo: não move; data inválida
+	dt = client.post("/api/itens", json={"titulo": "Feriado", "area_id": area_id, "inicio": "2026-11-02T00:00:00", "dia_inteiro": True}).json()
+	client.post(f"/mover/{dt['id']}", data={"data": "2026-11-03", "hora": "10:00"})
+	assert client.get(f"/api/itens/{dt['id']}").json()["inicio"] == "2026-11-03T00:00:00"
+	pz = client.post("/api/itens", json={"titulo": "Entrega", "area_id": area_id, "prazo": "2026-11-10T23:59:00"}).json()
+	assert client.post(f"/mover/{pz['id']}", data={"data": "2026-11-11"}).status_code == 422
+	assert client.post(f"/mover/{it['id']}", data={"data": "ontem"}).status_code == 422
+	# a semana marca as linhas que podem ser arrastadas e traz a janela "Mover"
+	html = client.get("/semana?inicio=2026-11-02").text
+	assert 'data-arrastar-dia="2026-11-06"' in html and f'data-item="{it["id"]}"' in html and 'id="mover"' in html
+
+
+def test_mover_so_uma_ocorrencia_de_recorrente(client, area_id):
+	acad = client.post("/api/itens", json={"titulo": "Academia", "area_id": area_id, "inicio": "2026-11-02T14:00:00",
+		"fim": "2026-11-02T15:00:00", "recorrencia": "FREQ=DAILY"}).json()
+	aid = acad["id"]
+	assert client.post(f"/mover/{aid}", data={"data": "2026-11-03", "hora": "21:00"}).status_code == 422  # falta orig
+	assert client.post(f"/mover/{aid}", data={"data": "2026-11-03", "hora": "21:00", "orig": "2026-11-03"}).status_code == 204
+	dia = lambda d: [(e["inicio"], e["status"], e["movida"]) for e in client.get(f"/api/agenda?de={d}&ate={d}").json()]  # noqa: E731
+	assert dia("2026-11-03") == [("2026-11-03T21:00:00", "a_fazer", True)]
+	assert dia("2026-11-04") == [("2026-11-04T14:00:00", "a_fazer", False)]  # as outras seguem a regra
+	# para outro dia: some do original e aparece no novo (ao lado da do próprio dia)
+	client.post(f"/mover/{aid}", data={"data": "2026-11-05", "hora": "07:00", "orig": "2026-11-03"})
+	assert dia("2026-11-03") == []
+	assert [x[0] for x in dia("2026-11-05")] == ["2026-11-05T07:00:00", "2026-11-05T14:00:00"]
+	# feito/desfeito mantém o horário movido
+	client.post(f"/alternar/{aid}?tipo=agendado&dia=2026-11-03")
+	assert dia("2026-11-05")[0] == ("2026-11-05T07:00:00", "concluido", True)
+	client.post(f"/alternar/{aid}?tipo=agendado&dia=2026-11-03")
+	assert dia("2026-11-05")[0] == ("2026-11-05T07:00:00", "a_fazer", True)
+	# voltar ao horário de sempre: sem hora, no dia original -> registro some
+	client.post(f"/mover/{aid}", data={"data": "2026-11-03", "orig": "2026-11-03"})
+	assert dia("2026-11-03") == [("2026-11-03T14:00:00", "a_fazer", False)]
+	assert client.get(f"/api/itens/{aid}/ocorrencias").json() == []

@@ -25,7 +25,7 @@ def _caminho(projetos: dict, projeto_id: int | None) -> str | None:
 	return " › ".join(reversed(nomes)) or None
 
 
-def _entrada(item: Item, tipo: str, dia: date, inicio, fim, status: str, areas, projetos, session) -> Entrada:
+def _entrada(item: Item, tipo: str, dia: date, inicio, fim, status: str, areas, projetos, session, oc_data=None, movida=False) -> Entrada:
 	area = areas[item.area_id]
 	projeto = projetos.get(item.projeto_id)
 	return Entrada(
@@ -48,6 +48,8 @@ def _entrada(item: Item, tipo: str, dia: date, inicio, fim, status: str, areas, 
 		projeto_caminho=_caminho(projetos, item.projeto_id),
 		duracao_min=item.duracao_min,
 		progresso=percentual(item, session),
+		ocorrencia_data=oc_data,
+		movida=movida,
 	)
 
 
@@ -73,14 +75,30 @@ def montar_agenda(session: Session, de: date, ate: date) -> list[Entrada]:
 		select(Item).where(Item.recorrencia.is_not(None), Item.inicio <= fim_dt, Item.status != StatusItem.cancelado)
 	).all()
 	for it in recorrentes:
-		registros = {
-			o.data: o.status.value
-			for o in session.exec(select(Ocorrencia).where(Ocorrencia.item_id == it.id, Ocorrencia.data >= de, Ocorrencia.data <= ate))
-		}
+		# registros do intervalo: pelo dia original OU pelo horário novo (movida para cá de outro dia)
+		ocs = session.exec(
+			select(Ocorrencia).where(
+				Ocorrencia.item_id == it.id,
+				or_(
+					(Ocorrencia.data >= de) & (Ocorrencia.data <= ate),
+					(Ocorrencia.inicio >= ini_dt) & (Ocorrencia.inicio <= fim_dt),
+				),
+			)
+		).all()
+		registros = {o.data: o for o in ocs}
 		dur = recorrencia.duracao(it.inicio, it.fim)
 		for quando in recorrencia.ocorrencias(it.recorrencia, it.inicio, de, ate):
-			status = registros.get(quando.date(), "a_fazer")
-			entradas.append(_entrada(it, "agendado", quando.date(), quando, quando + dur if dur else None, status, areas, projetos, session))
+			oc = registros.get(quando.date())
+			if oc and oc.inicio:
+				continue  # movida: entra abaixo, no horário novo (se cair no intervalo)
+			status = oc.status.value if oc else "a_fazer"
+			entradas.append(_entrada(it, "agendado", quando.date(), quando, quando + dur if dur else None, status, areas, projetos, session, oc_data=quando.date()))
+		for oc in ocs:
+			if not oc.inicio or not (ini_dt <= oc.inicio <= fim_dt):
+				continue
+			if not recorrencia.ocorrencias(it.recorrencia, it.inicio, oc.data, oc.data):
+				continue  # a regra mudou e esse dia não existe mais
+			entradas.append(_entrada(it, "agendado", oc.inicio.date(), oc.inicio, oc.fim, oc.status.value, areas, projetos, session, oc_data=oc.data, movida=True))
 
 	# 3. Prazos que vencem no intervalo (itens não concluídos)
 	prazos = session.exec(

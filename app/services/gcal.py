@@ -6,7 +6,8 @@ Cria o que falta, atualiza o que mudou (hash) e apaga o que sobrou. Não guarda 
 banco: se algo se perder, a próxima rodada conserta.
 
 - Item com horário (ou dia inteiro) e em aberto -> evento (cor pela prioridade).
-- Recorrente -> evento recorrente com a mesma RRULE; dias pulados saem (EXDATE).
+- Recorrente -> evento recorrente com a mesma RRULE; dias pulados/movidos saem (EXDATE) e
+  cada ocorrência movida vira um evento avulso ("mov:<id>:<AAAAMMDD>").
 - Concluído -> fica na agenda com "✓" e sem lembretes. Cancelado ou sem data -> sai.
 - Prazo de item em aberto -> evento "⏰ Prazo: …".
 """
@@ -92,9 +93,14 @@ def eventos_desejados(session: Session) -> dict[str, dict]:
 	"""{chave: corpo do evento}. Chave = "item:<id>" ou "prazo:<id>"."""
 	arv = Arvore.carregar(session)
 	areas = {a.id: a.nome for a in session.exec(select(Area)).all()}
-	pulados: dict[int, list] = {}  # recorrentes: dias pulados viram EXDATE (o evento some só nesse dia)
-	for oc in session.exec(select(Ocorrencia).where(Ocorrencia.status == StatusOcorrencia.pulado).order_by(Ocorrencia.data)).all():
-		pulados.setdefault(oc.item_id, []).append(oc.data)
+	# Recorrentes: dias pulados ou movidos saem da série (EXDATE); a movida vira um evento avulso
+	pulados: dict[int, list] = {}
+	movidas: list[Ocorrencia] = []
+	for oc in session.exec(select(Ocorrencia).order_by(Ocorrencia.data)).all():
+		if oc.status == StatusOcorrencia.pulado or oc.inicio:
+			pulados.setdefault(oc.item_id, []).append(oc.data)
+		if oc.inicio and oc.status != StatusOcorrencia.pulado:
+			movidas.append(oc)
 	desejados: dict[str, dict] = {}
 	for it in session.exec(select(Item).where(Item.status != StatusItem.cancelado)).all():
 		contexto = arv.caminho_texto(it.projeto_id) if it.projeto_id else areas.get(it.area_id, "")
@@ -112,6 +118,16 @@ def eventos_desejados(session: Session) -> dict[str, dict]:
 				if pulados.get(it.id):
 					corpo["recurrence"].append(_exdate(pulados[it.id], it.inicio, it.dia_inteiro))
 			desejados[f"item:{it.id}"] = corpo
+		if it.recorrencia and it.inicio:
+			for oc in (o for o in movidas if o.item_id == it.id):
+				oc_feito = oc.status == StatusOcorrencia.concluido
+				desejados[f"mov:{it.id}:{oc.data:%Y%m%d}"] = {
+					"summary": ("✓ " if oc_feito else "") + it.titulo,
+					"description": _descricao(it, contexto),
+					"colorId": "8" if oc_feito else CORES[it.prioridade],
+					"reminders": {"useDefault": False, "overrides": []} if oc_feito else {"useDefault": True},
+					**_quando(oc.inicio, oc.fim, it.dia_inteiro, DURACAO_PADRAO),
+				}
 		if it.prazo and not feito:
 			sem_hora = it.prazo.time() == hora(23, 59)  # prazo sem hora = o dia todo
 			desejados[f"prazo:{it.id}"] = {
