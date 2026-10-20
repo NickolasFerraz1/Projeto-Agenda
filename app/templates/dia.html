@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icone %}
+{% set aba = "semana" %}
+{% block titulo %}{{ dia_ref|dia(True)|capitalize }} · Agenda{% endblock %}
+{% block conteudo %}
+{% set vista = "dia" %}{% set ref = dia_ref %}
+{% include "partials/vista_alternar.html" %}
+<div class="cabecalho-pagina">
+	<a class="btn-icone" href="/dia?d={{ anterior.isoformat() }}" aria-label="Dia anterior">{{ icone("esq", 20) }}</a>
+	<h1 class="titulo-pagina">{{ dia_ref|dia(True)|capitalize }}</h1>
+	<a class="btn-icone" href="/dia?d={{ seguinte.isoformat() }}" aria-label="Próximo dia">{{ icone("dir", 20) }}</a>
+	{% if dia_ref != hoje %}<a class="btn-sec" href="/dia">Hoje</a>{% endif %}
+	<a class="btn-icone" href="/itens/novo?data={{ dia_ref.isoformat() }}&voltar={{ ('/dia?d=' ~ dia_ref.isoformat())|urlencode }}" aria-label="Novo item neste dia">{{ icone("mais", 20) }}</a>
+</div>
+
+{% if faixa %}
+<div class="dia-faixa">
+	{% for e in faixa %}
+	<a class="dia-chip {{ 'feito' if e.status in ('concluido', 'pulado') }}" href="/itens/{{ e.item_id }}" style="--cor: {{ e.area_cor }}">
+		{%- if e.tipo_entrada == "prazo" %}{{ icone("prazo", 12) }} {% endif %}{{ e.titulo }}</a>
+	{% endfor %}
+</div>
+{% endif %}
+
+<div class="dia-janela" id="dia-janela" data-dia="{{ dia_ref.isoformat() }}" data-hora-px="{{ hora_px }}"
+	data-rolar="{{ ((agora_min if agora_min is not none else ((blocos[0].ini if blocos else 7 * 60))) // 60 - 1) * hora_px }}">
+	<div class="dia-grade" style="height: {{ 24 * hora_px }}px; --hora: {{ hora_px }}px">
+		{% for h in range(24) %}
+		<div class="dia-hora" style="top: {{ h * hora_px }}px"><span>{{ "%02d:00"|format(h) }}</span></div>
+		{% endfor %}
+		{% for b in blocos %}
+		{% set e = b.e %}
+		{% set feito = e.status == "concluido" %}{% set pulado = e.status == "pulado" %}
+		{% set passou = agora_min is not none and b.fim <= agora_min and not feito and not pulado %}
+		<a class="dia-bloco {{ 'feito' if feito }} {{ 'pulado' if pulado }} {{ 'passou' if passou }} {{ 'e-prazo' if e.tipo_entrada == 'prazo' }} {{ 'curto' if b.altura < 44 }}"
+			href="/itens/{{ e.item_id }}" draggable="false" hx-boost="false"
+			style="--cor: {{ e.area_cor }}; top: {{ b.top }}px; height: {{ b.altura - 2 }}px; left: calc(56px + (100% - 56px) * {{ b.col }} / {{ b.cols }}); width: calc((100% - 56px) / {{ b.cols }} - 4px)"
+			{%- if e.tipo_entrada == "agendado" %} data-movivel data-item="{{ e.item_id }}" data-titulo="{{ e.titulo }}" data-data="{{ e.data.isoformat() }}"
+			data-hora="{{ b.hora_ini }}" data-ini="{{ b.ini }}" data-dur="{{ b.fim - b.ini }}"{% if e.recorrente %} data-orig="{{ (e.ocorrencia_data or e.data).isoformat() }}"{% endif %}{% if e.movida %} data-movida{% endif %}{% endif %}>
+			<span class="dia-bloco-titulo">{{ "✓ " if feito }}{{ "⏭ " if pulado }}{{ e.titulo }}</span>
+			<span class="dia-bloco-meta">
+				{%- if e.tipo_entrada == "prazo" %}⏰ {{ b.hora_ini }}{% else %}{{ b.hora_ini }}–{{ b.hora_fim }}{% endif %}
+				{%- if e.projeto_caminho or e.area_nome %} · {{ e.projeto_caminho or e.area_nome }}{% endif %}
+				{%- if e.recorrente %} · ↻{% endif %}{% if passou %} · passou{% endif %}</span>
+		</a>
+		{% endfor %}
+		{% if agora_min is not none %}
+		<div class="dia-agora" style="top: {{ agora_min * hora_px / 60 }}px"><span>{{ "%02d:%02d"|format(agora_min // 60, agora_min % 60) }}</span></div>
+		{% endif %}
+	</div>
+</div>
+<p class="dica">Arraste um bloco para mudar o horário (encaixa de 15 em 15 min; no celular, segure um instante). Toque duplo: escolher a hora exata.</p>
+{% include "partials/mover_dialogo.html" %}
+{% endblock %}

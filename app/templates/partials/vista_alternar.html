@@ -1,5 +1,6 @@
-{# Seletor Semana | Mês (topo das duas telas). `vista`: "semana" | "mes"; `ref`: data de referência. #}
+{# Seletor Dia | Semana | Mês (topo das telas do Calendário). `vista`: "dia" | "semana" | "mes"; `ref`: data de referência. #}
 <nav class="alternar-vista" aria-label="Visão">
+	<a class="{{ 'on' if vista == 'dia' }}" href="/dia?d={{ ref.isoformat() }}" {{ 'aria-current=page' if vista == 'dia' }}>Dia</a>
 	<a class="{{ 'on' if vista == 'semana' }}" href="/semana?inicio={{ ref.isoformat() }}" {{ 'aria-current=page' if vista == 'semana' }}>Semana</a>
 	<a class="{{ 'on' if vista == 'mes' }}" href="/mes?m={{ ref.strftime('%Y-%m') }}&dia={{ ref.isoformat() }}" {{ 'aria-current=page' if vista == 'mes' }}>Mês</a>
 </nav>

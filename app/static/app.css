@@ -438,3 +438,38 @@ code { background: var(--sup2); border-radius: 4px; padding: 1px 5px; font-size:
 .dialogo [hidden] { display: none !important; }
 .toast { display: flex; align-items: center; gap: 12px; }
 .toast-acao { margin-left: auto; background: transparent; border: 1px solid var(--acento); color: var(--acento); border-radius: 8px; padding: 4px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+
+/* ---------- Calendário > Dia (grade por horas) ---------- */
+.dia-faixa { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px 56px; }
+.dia-chip { font-size: 13px; padding: 4px 10px; border-radius: 6px; color: var(--texto); text-decoration: none;
+	background: color-mix(in srgb, var(--cor) 22%, transparent); border-left: 3px solid var(--cor); }
+.dia-chip.feito { opacity: .5; text-decoration: line-through; }
+.dia-janela { position: relative; height: calc(100dvh - 300px); min-height: 360px; overflow-y: auto; border-top: 1px solid var(--borda);
+	border-radius: 0 0 10px 10px; padding-top: 10px; overscroll-behavior: contain; }
+@media (max-width: 760px) { .dia-janela { height: calc(100dvh - 330px); } }
+.dia-grade { position: relative; }
+.dia-hora { position: absolute; left: 56px; right: 0; border-top: 1px solid var(--borda); }
+.dia-hora span { position: absolute; left: -56px; top: -9px; width: 46px; text-align: right; font-size: 12px; color: var(--fraco); font-variant-numeric: tabular-nums; }
+.dia-bloco {
+	position: absolute; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; gap: 1px;
+	padding: 4px 8px; border-radius: 8px; color: var(--texto); text-decoration: none; user-select: none; -webkit-user-select: none;
+	background: color-mix(in srgb, var(--cor) 26%, var(--fundo)); border-left: 4px solid var(--cor); -webkit-touch-callout: none;
+}
+.dia-bloco[data-movivel] { cursor: grab; }
+.dia-bloco.curto { flex-direction: row; align-items: center; gap: 8px; padding-top: 0; padding-bottom: 0; }
+.dia-bloco-titulo { font-size: 14px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dia-bloco-meta { font-size: 11.5px; color: var(--fraco); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dia-bloco.e-prazo { background: transparent; border: 1px dashed var(--cor); border-left: 4px solid var(--cor); }
+.dia-bloco.feito, .dia-bloco.pulado { opacity: .45; }
+.dia-bloco.feito .dia-bloco-titulo { text-decoration: line-through; }
+.dia-bloco.pulado { background: transparent; border: 1px dashed var(--cor); }
+.dia-bloco.passou { border-left-color: var(--critica); background: color-mix(in srgb, var(--critica) 14%, var(--fundo)); }
+.dia-bloco.passou .dia-bloco-meta { color: var(--critica); }
+.dia-bloco.arrastando-dia { z-index: 5; cursor: grabbing; box-shadow: 0 10px 28px rgb(0 0 0 / .5); outline: 2px solid var(--acento); }
+.dia-rotulo { position: absolute; right: 6px; top: 4px; background: var(--acento); color: #06121a; font-size: 12px; font-weight: 700; padding: 1px 6px; border-radius: 6px; }
+.dia-agora { position: absolute; left: 50px; right: 0; border-top: 2px solid var(--critica); z-index: 4; pointer-events: none; }
+.dia-agora::before { content: ""; position: absolute; left: -5px; top: -6px; width: 10px; height: 10px; border-radius: 50%; background: var(--critica); }
+.dia-agora span { position: absolute; right: 0; top: -18px; font-size: 11px; color: var(--critica); }
+.linha-item.passou { border-left-color: var(--critica); }
+.linha-item.passou .quando { color: var(--critica); }
+.tag-passou { color: var(--critica); }

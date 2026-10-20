@@ -120,6 +120,7 @@ def render(request: Request, nome: str, session: Session | None = None, **ctx) -
 	if session is not None:
 		ctx.setdefault("areas", session.exec(select(Area).order_by(Area.nome)).all())
 	ctx.setdefault("hoje", date.today())
+	ctx.setdefault("agora", datetime.now())
 	ctx.setdefault("google", gcal.ESTADO)
 	ctx.setdefault("gcal_id", config.GCAL_ID)
 	if not nome.startswith("partials/"):
@@ -463,6 +464,80 @@ def pagina_semana(request: Request, inicio: date | None = None, session: Session
 		dom=dom,
 		anterior=seg - timedelta(days=7),
 		proxima=seg + timedelta(days=7),
+	)
+
+
+# ---------- Dia (grade por horas) ----------
+HORA_PX = 64  # altura de uma hora na grade do dia (o CSS usa a mesma medida)
+
+
+def _blocos_dia(entradas: list) -> tuple[list[dict], list]:
+	"""Separa o que tem horário (blocos posicionados, com colunas para sobreposições, como no
+	Google Agenda) do que é de dia inteiro ou prazo sem hora (faixa acima da grade)."""
+	blocos, faixa = [], []
+	for e in entradas:
+		sem_hora = e.dia_inteiro or not e.inicio or (e.tipo_entrada == "prazo" and e.inicio.strftime("%H:%M") == "23:59")
+		if sem_hora:
+			faixa.append(e)
+			continue
+		ini = e.inicio.hour * 60 + e.inicio.minute
+		if e.tipo_entrada == "prazo":
+			fim = ini + 15
+		elif e.fim and e.fim.date() == e.data:
+			fim = max(e.fim.hour * 60 + e.fim.minute, ini + 15)
+		elif e.fim:
+			fim = 24 * 60
+		else:
+			fim = ini + (e.duracao_min or 30)
+		blocos.append({"e": e, "ini": ini, "fim": min(fim, 24 * 60)})
+	blocos.sort(key=lambda b: (b["ini"], -b["fim"]))
+	grupo, fim_grupo = [], -1
+
+	def fecha():
+		colunas: list[int] = []
+		for b in grupo:
+			c = next((n for n, f in enumerate(colunas) if f <= b["ini"]), None)
+			if c is None:
+				colunas.append(0)
+				c = len(colunas) - 1
+			colunas[c] = b["fim"]
+			b["col"] = c
+		for b in grupo:
+			b["cols"] = len(colunas)
+		grupo.clear()
+
+	for b in blocos:
+		if b["ini"] >= fim_grupo and grupo:
+			fecha()
+		grupo.append(b)
+		fim_grupo = max(fim_grupo, b["fim"])
+	if grupo:
+		fecha()
+	for b in blocos:
+		b["top"] = b["ini"] * HORA_PX / 60
+		b["altura"] = max((b["fim"] - b["ini"]) * HORA_PX / 60, 22)
+		b["hora_ini"] = f"{b['ini'] // 60:02d}:{b['ini'] % 60:02d}"
+		b["hora_fim"] = f"{b['fim'] // 60 % 24:02d}:{b['fim'] % 60:02d}"
+	return blocos, faixa
+
+
+@router.get("/dia", response_class=HTMLResponse)
+def pagina_dia(request: Request, d: date | None = None, session: Session = Depends(get_session)):
+	"""Grade do dia (00–24h): arrastar um bloco para cima/baixo muda o horário."""
+	dia = d or date.today()
+	blocos, faixa = _blocos_dia(api_agenda.montar_agenda(session, dia, dia))
+	agora = datetime.now()
+	return render(
+		request,
+		"dia.html",
+		session,
+		dia_ref=dia,
+		blocos=blocos,
+		faixa=faixa,
+		hora_px=HORA_PX,
+		agora_min=agora.hour * 60 + agora.minute if dia == agora.date() else None,
+		anterior=dia - timedelta(days=1),
+		seguinte=dia + timedelta(days=1),
 	)
 
 

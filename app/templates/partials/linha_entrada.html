@@ -3,7 +3,10 @@
 {% set feito = e.status == "concluido" %}
 {% set pulado = e.status == "pulado" %}
 {% set dia_acao = e.ocorrencia_data or e.data %}{# recorrente: ações usam o dia original da ocorrência #}
-<li class="linha-item {{ 'feito' if feito }} {{ 'pulado' if pulado }} {{ 'e-prazo' if e.tipo_entrada == 'prazo' }} {{ 'movida' if e.movida }}" style="--cor: {{ e.area_cor }}"
+{# passou do horário e não foi feita (só hoje; amanhã vira "atrasada") #}
+{% set passou = agora is defined and e.tipo_entrada == "agendado" and e.inicio and not e.dia_inteiro and not feito and not pulado
+	and e.data == agora.date() and (e.fim or e.inicio + timedelta_min(e.duracao_min or 30)) <= agora %}
+<li class="linha-item {{ 'feito' if feito }} {{ 'pulado' if pulado }} {{ 'passou' if passou }} {{ 'e-prazo' if e.tipo_entrada == 'prazo' }} {{ 'movida' if e.movida }}" style="--cor: {{ e.area_cor }}"
 	{%- if e.tipo_entrada == "agendado" and e.inicio %} data-movivel data-item="{{ e.item_id }}" data-titulo="{{ e.titulo }}" data-data="{{ e.data.isoformat() }}"
 	data-hora="{{ '' if e.dia_inteiro else e.inicio.strftime('%H:%M') }}" data-fim="{{ '' if e.dia_inteiro else (e.fim or e.inicio + timedelta_min(e.duracao_min or 30)).strftime('%H:%M') }}"{% if e.recorrente %} data-orig="{{ dia_acao.isoformat() }}"{% endif %}{% if e.movida %} data-movida{% endif %}{% endif %}>
 	<button class="marcar" aria-label="{{ 'Desmarcar' if feito else 'Marcar como feito' }}"
@@ -22,6 +25,7 @@
 			{%- if e.recorrente %} · {{ icone("repete", 12) }}{% endif %}
 			{%- if pulado %} · pulado{% endif %}
 			{%- if e.movida %} · só hoje neste horário{% endif %}
+			{%- if passou %} · <span class="tag-passou">passou do horário</span>{% endif %}
 			{{ prioridade(e.prioridade) }}
 			{{ barra(e.progresso) }}
 		</span>

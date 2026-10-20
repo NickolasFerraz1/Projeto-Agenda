@@ -9,7 +9,7 @@ _Atualizado em 20/10/2026_
   - 5.4 Google Agenda (só o Pi sincroniza; PC e notebook com `AGENDA_GCAL_ID` comentado)
   - 5.5 espelho lendo `/api/hoje` e `/api/agenda` (repo MagicMirror)
 - App instalado como PWA no notebook e no celular (falta o PC): `https://magicmirror.tailc1dcbd.ts.net`.
-- **6.1 Pular dia de recorrente** ✅ · **6.2 Visão de mês** ✅ · **6.3 Ordenar arrastando** ✅ · **6.3.1 Mover arrastando no Calendário** ✅ · **6.3.2 Tarefas em ordem** ✅ (ver abaixo).
+- **6.1 Pular dia de recorrente** ✅ · **6.2 Visão de mês** ✅ · **6.3 Ordenar arrastando** ✅ · **6.3.1 Mover arrastando no Calendário** ✅ · **6.3.2 Tarefas em ordem** ✅ · **6.3.3 Visão Dia** ✅ (ver abaixo).
 - Aba **Semana** renomeada para **Calendário** (dentro: seletor Semana | Mês).
 - App recarrega sozinho quando o servidor foi atualizado com a janela aberta (cabeçalho `X-Agenda-Versao` → `HX-Refresh`).
 
@@ -21,6 +21,7 @@ _Atualizado em 20/10/2026_
 | 6.3 | **Ordenar arrastando** | ✅ alça ⠿ nas tarefas em aberto e nas etapas/subprojetos (mouse e toque); agendamento segue a nova ordem; reimportar o plano não desfaz |
 | 6.3.1 | **Mover arrastando no Calendário** | ✅ Semana (PC e celular, segurar ~¼ s) e Mês (PC): soltar em outro dia move na hora (mesmo horário, aviso com "Desfazer"); no mesmo dia abre a janela "Mover" (sugere logo depois do item de cima); recorrente move só aquela ocorrência (Google: EXDATE + evento avulso) |
 | 6.3.2 | **Tarefas em ordem (dependentes)** | ✅ opção no projeto (herdada pelas etapas; planos importados já vêm ligados): no calendário a tarefa não passa da anterior/seguinte. Reordenar no projeto refaz os horários marcados em qualquer projeto (livre ou em ordem) |
+| 6.3.3 | **Visão Dia + "passou do horário"** | ✅ Calendário: Dia \| Semana \| Mês. Grade 00–24h (64 px/h), arrastar o bloco muda o horário (15 em 15 min; toque: segurar), toque duplo = hora exata, um toque abre o item. Hoje/Dia/espelho: tarefa de hoje que passou sem fazer fica vermelha |
 | 6.4 | **Botão no Obsidian**: endpoint com token + comando no Obsidian (Shell Commands/QuickAdd) → `/api/planos/importar` | próximo |
 | 6.5 | **Plano com IA**: objetivo → plano no formato do importador → prévia → importar. Decidir modelo/custo; ideia de um modelo especializado em planos | — |
 
@@ -50,7 +51,12 @@ _Atualizado em 20/10/2026_
 - Projeto livre (desligado): calendário livre (a reorganização ao reordenar vale igual).
 - Cuidado no `base.html`: o script do fim do body roda de novo a cada navegação do hx-boost — nada de `const`/`let` no nível de cima (redeclarar quebra tudo).
 
-104 testes passando. `ASSET_VERSION` = 15.
+### 6.3.3 — como funciona
+- `/dia?d=AAAA-MM-DD`; `_blocos_dia` (web.py) posiciona os blocos e as colunas de sobreposição; arrasto em `window.iniciarDia` (base.html) chama `/mover`.
+- Os blocos têm `hx-boost="false"` (o clique é tratado pelo script: um = abre, dois = janela "Mover").
+- "Passou do horário": só para hoje (no dia seguinte vira "atrasada").
+
+106 testes passando. `ASSET_VERSION` = 16.
 
 ## Ao retomar
 1. Conferir se os zips 6.1, 6.2, 6.2.1 e 6.2.2 (app) e 6.1 (espelho) foram extraídos, commitados e atualizados no Pi.

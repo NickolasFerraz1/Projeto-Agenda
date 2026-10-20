@@ -142,6 +142,81 @@
 				dlg.returnValue = "";
 				dlg.showModal();
 			};
+			// Calendário > Dia: arrastar um bloco para cima/baixo muda o horário (encaixa de 15 em 15 min).
+			// Mouse: clicar e arrastar. Toque: segurar ~0,3 s e arrastar (antes disso, a tela rola).
+			// Um toque/clique abre o item; dois seguidos abrem a janela "Mover" (hora exata).
+			window.iniciarDia = () => {
+				const jan = document.getElementById("dia-janela");
+				if (!jan || jan.dataset.pronto) return;
+				jan.dataset.pronto = "1";
+				jan.scrollTop = Math.max(0, Number(jan.dataset.rolar) || 0);
+				const H = Number(jan.dataset.horaPx), passo = 15;
+				const fmt = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+				jan.querySelectorAll(".dia-bloco").forEach((bl) => {
+					const d = bl.dataset, movivel = "movivel" in d;
+					let y0 = 0, ini0 = 0, novo = null, arrastando = false, timer = null, rotulo = null, clique = null, arrastou = false;
+					const comecar = () => {
+						arrastando = arrastou = true;
+						bl.classList.add("arrastando-dia");
+						rotulo = document.createElement("span");
+						rotulo.className = "dia-rotulo";
+						bl.appendChild(rotulo);
+					};
+					const mover = (y) => {
+						const dur = Number(d.dur) || 30;
+						let m = Math.round((ini0 + ((y - y0) * 60) / H) / passo) * passo;
+						m = Math.max(0, Math.min(24 * 60 - Math.min(dur, 15), m));
+						novo = m;
+						bl.style.top = `${(m * H) / 60}px`;
+						rotulo.textContent = fmt(m);
+					};
+					const terminar = () => {
+						clearTimeout(timer);
+						if (!arrastando) return;
+						arrastando = false;
+						bl.classList.remove("arrastando-dia");
+						setTimeout(() => { arrastou = false; }, 300);
+						if (novo === null || novo === Number(d.ini)) { bl.style.top = `${(ini0 * H) / 60}px`; rotulo && rotulo.remove(); return; }
+						window.moverItem(d, jan.dataset.dia, fmt(novo))
+							.then(() => window.guardarAviso(`“${d.titulo}” agora às ${fmt(novo)}.`, { item: d.item, orig: d.orig, data: d.data, hora: d.hora }))
+							.catch((e) => window.guardarAviso(`Não deu para mover: ${e.message}`))
+							.finally(() => location.reload());
+					};
+					if (movivel) {
+						bl.addEventListener("mousedown", (ev) => {
+							if (ev.button !== 0) return;
+							ev.preventDefault();
+							y0 = ev.clientY; ini0 = Number(d.ini); novo = null;
+							const mm = (e2) => { if (!arrastando && Math.abs(e2.clientY - y0) > 4) comecar(); if (arrastando) mover(e2.clientY); };
+							const mu = () => { document.removeEventListener("mousemove", mm); document.removeEventListener("mouseup", mu); terminar(); };
+							document.addEventListener("mousemove", mm);
+							document.addEventListener("mouseup", mu);
+						});
+						bl.addEventListener("touchstart", (ev) => {
+							y0 = ev.touches[0].clientY; ini0 = Number(d.ini); novo = null;
+							timer = setTimeout(() => { comecar(); if (navigator.vibrate) navigator.vibrate(15); }, 300);
+						}, { passive: true });
+						bl.addEventListener("touchmove", (ev) => {
+							const y = ev.touches[0].clientY;
+							if (!arrastando) { if (Math.abs(y - y0) > 8) clearTimeout(timer); return; }
+							ev.preventDefault();
+							mover(y);
+						}, { passive: false });
+						bl.addEventListener("touchend", (ev) => { if (arrastando) ev.preventDefault(); terminar(); });
+						bl.addEventListener("touchcancel", terminar);
+					}
+					bl.addEventListener("click", (ev) => {
+						ev.preventDefault();
+						if (arrastou) return;
+						if (clique && movivel) {  // dois seguidos: hora exata
+							clearTimeout(clique); clique = null;
+							window.abrirMover(bl, jan.dataset.dia, d.hora);
+							return;
+						}
+						clique = setTimeout(() => { clique = null; location.href = bl.getAttribute("href"); }, movivel ? 280 : 0);
+					});
+				});
+			};
 			// Mostra o aviso guardado; com "Desfazer", devolve o item para onde estava
 			window.mostrarAvisoGuardado = () => {
 				let av = null;
@@ -159,7 +234,7 @@
 		}
 		// O Sortable carrega com defer: na primeira carga espera; nas navegações do hx-boost já existe.
 		// Atenção: este trecho roda de novo a cada navegação — nada de const/let soltos aqui (redeclarar quebra o script).
-		window.iniciarArrastos = window.iniciarArrastos || (() => { window.iniciarOrdenacao(); window.iniciarArrastarAgenda(); });
+		window.iniciarArrastos = window.iniciarArrastos || (() => { window.iniciarOrdenacao(); window.iniciarArrastarAgenda(); window.iniciarDia(); });
 		if (window.Sortable) window.iniciarArrastos();
 		else document.addEventListener("DOMContentLoaded", window.iniciarArrastos, { once: true });
 		// Aviso guardado antes de um reload (ex.: mover recusado no calendário)

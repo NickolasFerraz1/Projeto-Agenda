@@ -253,3 +253,26 @@ def test_mover_so_uma_ocorrencia_de_recorrente(client, area_id):
 	client.post(f"/mover/{aid}", data={"data": "2026-11-03", "orig": "2026-11-03"})
 	assert dia("2026-11-03") == [("2026-11-03T14:00:00", "a_fazer", False)]
 	assert client.get(f"/api/itens/{aid}/ocorrencias").json() == []
+
+
+def test_visao_dia_por_horas(client, area_id):
+	client.post("/api/itens", json={"titulo": "Reunião", "area_id": area_id, "inicio": "2026-11-04T09:45:00", "fim": "2026-11-04T10:30:00"})
+	client.post("/api/itens", json={"titulo": "Almoço", "area_id": area_id, "inicio": "2026-11-04T10:00:00", "fim": "2026-11-04T11:00:00"})
+	client.post("/api/itens", json={"titulo": "Feriado", "area_id": area_id, "inicio": "2026-11-04T00:00:00", "dia_inteiro": True})
+	html = client.get("/dia?d=2026-11-04").text
+	assert 'id="dia-janela"' in html and 'class="alternar-vista"' in html and ">Dia<" in html
+	assert 'data-hora="09:45"' in html and 'data-dur="45"' in html  # horário quebrado na posição exata
+	assert "top: 624.0px" in html  # 09:45 = 9,75 h × 64 px
+	assert "/ 2)" in html  # Reunião e Almoço se sobrepõem: duas colunas
+	assert 'class="dia-chip' in html and "Feriado" in html  # dia inteiro vai para a faixa
+	assert client.get("/dia").status_code == 200
+
+
+def test_hoje_marca_o_que_passou_do_horario(client, area_id):
+	from datetime import datetime, timedelta
+
+	cedo = (datetime.now() - timedelta(hours=2)).replace(second=0, microsecond=0)
+	if cedo.date() != datetime.now().date():
+		return  # perto da meia-noite: não dá para montar o caso
+	client.post("/api/itens", json={"titulo": "Passou", "area_id": area_id, "inicio": cedo.isoformat()})
+	assert "passou do horário" in client.get("/").text
