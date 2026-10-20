@@ -66,6 +66,7 @@ class ProjetoIn(ProgressoIn):
 	prioridade: Prioridade | None = None  # herda do pai quando omitida (padrão: média)
 	ordem: int = 0
 	sequencial: bool = False
+	tarefas_em_ordem: bool = False
 	agenda_dias: str | None = Field(default=None, pattern=r"^(MO|TU|WE|TH|FR|SA|SU)(,(MO|TU|WE|TH|FR|SA|SU))*$")
 	agenda_hora: str | None = Field(default=None, pattern=r"^\d{2}:\d{2}$")
 	agenda_minutos: int | None = Field(default=None, ge=10, le=12 * 60)
@@ -86,6 +87,7 @@ class ProjetoUpdate(ProgressoIn):
 	area_id: int | None = None
 	ordem: int | None = None
 	sequencial: bool | None = None
+	tarefas_em_ordem: bool | None = None
 	prioridade: Prioridade | None = None
 	status: StatusProjeto | None = None
 	link: str | None = None
@@ -101,6 +103,7 @@ class ProjetoOut(ProgressoOut):
 	ordem: int
 	sequencial: bool
 	ordem_manual: bool = False  # filhos reordenados à mão (arrastar)
+	tarefas_em_ordem: bool = False
 	bloqueado: bool = False  # travado por um pai sequencial
 	agenda_dias: str | None = None  # horários de estudo (Agendar)
 	agenda_hora: str | None = None

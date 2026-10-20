@@ -69,6 +69,15 @@ def _migrar_colunas() -> None:
 					sql_padrao = f" DEFAULT {int(padrao) if isinstance(padrao, bool) else padrao}"
 				conn.exec_driver_sql(f'ALTER TABLE "{nome}" ADD COLUMN "{col.name}" {tipo}{sql_padrao}')
 				print(f"[db] coluna nova: {nome}.{col.name}")
+				if (nome, col.name) in AJUSTES_COLUNA_NOVA:
+					conn.exec_driver_sql(AJUSTES_COLUNA_NOVA[(nome, col.name)])
+
+
+# Valor inicial para dados que já existiam quando a coluna chegou
+AJUSTES_COLUNA_NOVA = {
+	# planos sequenciais (raiz) já criados: tarefas tratadas como dependentes
+	("projeto", "tarefas_em_ordem"): "UPDATE projeto SET tarefas_em_ordem = 1 WHERE sequencial = 1 AND pai_id IS NULL",
+}
 
 
 def get_session() -> Iterator[Session]:

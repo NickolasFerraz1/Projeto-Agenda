@@ -30,6 +30,7 @@
 	<p class="meta">
 		{{ area_tag(area) if area }} · {{ p.status|rotulo("status_projeto") }} · prioridade {{ p.prioridade|rotulo("prioridade")|lower }}
 		{%- if p.sequencial %} · sequencial{% endif %}
+		{%- if em_ordem %} · tarefas em ordem{% endif %}
 		{%- if p.bloqueado %} · {{ icone("cadeado", 12) }} aguardando a etapa anterior{% endif %}
 	</p>
 	{% if p.progresso is not none %}

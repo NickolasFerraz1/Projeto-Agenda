@@ -83,6 +83,7 @@ class Projeto(ProgressoCampos, Timestamps, table=True):
 	ordem: int = 0  # posição entre os irmãos (0 = ordem natural pelo nome)
 	sequencial: bool = False  # subprojetos liberam um de cada vez, na ordem
 	ordem_manual: bool = False  # filhos reordenados à mão no app: reimportar o plano não mexe na ordem
+	tarefas_em_ordem: bool = False  # tarefas dependentes (vale para as etapas abaixo): reordenar refaz os horários e o calendário não deixa passar da vizinha
 	progresso_modo: ProgressoModo = ProgressoModo.itens  # projetos: automático por padrão
 	# Horários de estudo para "Agendar" (guardados no plano e herdados pelas etapas)
 	agenda_dias: str | None = None  # "MO,WE,FR"

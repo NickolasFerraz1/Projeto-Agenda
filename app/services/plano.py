@@ -480,7 +480,8 @@ def aplicar(session: Session, plano: Plano, simular: bool = False) -> Relatorio:
 			campos["prioridade"] = Prioridade(plano.prioridade)
 		if proj is None:
 			prioridade = campos.pop("prioridade", pai.prioridade if pai else Prioridade.media)
-			proj = Projeto(nome=raiz.nome, pai_id=pai.id if pai else None, prioridade=prioridade, **campos)
+			# plano novo: tarefas dependentes (uma aula depois da outra); dá para desligar no Editar
+			proj = Projeto(nome=raiz.nome, pai_id=pai.id if pai else None, prioridade=prioridade, tarefas_em_ordem=True, **campos)
 			session.add(proj)
 			session.flush()
 			rel.marcar(1, "projeto", raiz.nome, "novo", minutos=_minutos(raiz))

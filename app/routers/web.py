@@ -382,6 +382,14 @@ async def mover(request: Request, item_id: int, session: Session = Depends(get_s
 			novo = datetime.combine(nova_data, time(0, 0))
 		else:
 			novo = datetime.combine(nova_data, nova_hora or item.inicio.time())
+		if item.projeto_id and Arvore.carregar(session).em_ordem(item.projeto_id):
+			# tarefas dependentes: continua depois da anterior e antes da seguinte
+			antes, depois = agendar.vizinhas(session, item)
+			fmt = lambda i: f"“{i.titulo}” ({i.inicio:%d/%m %H:%M})"  # noqa: E731
+			if antes and antes.inicio and novo <= antes.inicio:
+				raise HTTPException(422, f"“{item.titulo}” vem depois de {fmt(antes)}: escolha um horário depois dela")
+			if depois and depois.inicio and novo >= depois.inicio:
+				raise HTTPException(422, f"“{item.titulo}” vem antes de {fmt(depois)}: escolha um horário antes dela (ou reordene no projeto)")
 		delta = novo - item.inicio
 		item.inicio = novo
 		if item.fim:
@@ -572,6 +580,7 @@ def _projeto_payload(form) -> dict:
 		"status": form.get("status") or "ativo",
 		"ordem": _int(form, "ordem") or 0,
 		"sequencial": form.get("sequencial") == "on",
+		"tarefas_em_ordem": form.get("tarefas_em_ordem") == "on",
 		"agenda_auto": form.get("agenda_auto") == "on",
 		"link": _texto(form, "link"),
 		"notas": _texto(form, "notas"),
@@ -610,6 +619,7 @@ def pagina_projeto(request: Request, projeto_id: int, session: Session = Depends
 		fechados=fechados,
 		caminhos=_caminhos(session, ocultar=projeto_id),
 		etapa_para_agendar=agendar.proxima_para_agendar(session, projeto_id),
+		em_ordem=arv.em_ordem(projeto_id),
 		horarios=agendar.horarios_herdados(session, projeto_id)[0],
 	)
 

@@ -198,6 +198,35 @@ def aplicar(session: Session, projeto_id: int, ag: Agendamento, guardar_em: int 
 	return len(ag.encaixes)
 
 
+def reorganizar(session: Session, projeto_id: int) -> int | None:
+	"""Tarefas dependentes reordenadas no projeto: redistribui as que já têm data na nova ordem,
+	nos horários guardados do plano, a partir da primeira data marcada (ou de hoje).
+	Devolve quantas mudaram, ou None se não há horários guardados (só a ordem muda)."""
+	marcadas = [
+		i for i in session.exec(select(Item).where(Item.projeto_id == projeto_id, Item.recorrencia.is_(None))).all()
+		if i.inicio and i.status in (StatusItem.a_fazer, StatusItem.em_andamento)
+	]
+	if not marcadas:
+		return 0
+	horarios, guardar_em = horarios_herdados(session, projeto_id)
+	if not horarios:
+		return None
+	a_partir = min(i.inicio for i in marcadas).date()
+	ag = planejar(session, projeto_id, horarios, a_partir, remarcar=True, empurrar=True, so_itens={i.id for i in marcadas})
+	return aplicar(session, projeto_id, ag, guardar_em=guardar_em)
+
+
+def vizinhas(session: Session, item: Item) -> tuple[Item | None, Item | None]:
+	"""Tarefas dependentes: a anterior e a seguinte (em aberto e com data) na ordem do projeto."""
+	irmas = sorted(
+		(i for i in session.exec(select(Item).where(Item.projeto_id == item.projeto_id, Item.recorrencia.is_(None))).all()
+			if i.id == item.id or (i.inicio and i.status in (StatusItem.a_fazer, StatusItem.em_andamento))),
+		key=chave_irmaos,
+	)
+	pos = next(n for n, i in enumerate(irmas) if i.id == item.id)
+	return (irmas[pos - 1] if pos > 0 else None), (irmas[pos + 1] if pos + 1 < len(irmas) else None)
+
+
 def desagendar(session: Session, projeto_id: int, agora: datetime | None = None) -> int:
 	"""Tira a data das tarefas em aberto do projeto/etapa que estão de hoje em diante
 	(voltam para "sem data"). Tarefas concluídas e o passado ficam como estão."""

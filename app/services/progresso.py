@@ -68,6 +68,10 @@ class Arvore:
 		return arv
 
 	# ---------- hierarquia ----------
+	def em_ordem(self, projeto_id: int | None) -> bool:
+		"""Tarefas dependentes: o projeto ou algum ancestral tem `tarefas_em_ordem`."""
+		return any(p.tarefas_em_ordem for p in self.caminho(projeto_id))
+
 	def caminho(self, projeto_id: int | None) -> list[Projeto]:
 		"""Da raiz até o projeto (inclusive)."""
 		cam, visto = [], set()

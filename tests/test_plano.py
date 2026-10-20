@@ -152,8 +152,8 @@ def test_ordem_arrastada_sobrevive_ao_reimportar(client):
 	s1 = semanas["Semana 1"]
 	itens = {i["titulo"]: i["id"] for i in client.get(f"/api/projetos/{s1}/itens").json()}
 	nova = [itens["Escala de Dó"], itens["Notas do teclado"], itens["Postura e posição das mãos"]]
-	assert client.post(f"/api/projetos/{s1}/ordenar", json={"tipo": "itens", "ids": nova}).status_code == 204
-	assert client.post(f"/api/projetos/{pid}/ordenar", json={"tipo": "subprojetos", "ids": [semanas["Semana 2"], s1]}).status_code == 204
+	assert client.post(f"/api/projetos/{s1}/ordenar", json={"tipo": "itens", "ids": nova}).status_code == 200
+	assert client.post(f"/api/projetos/{pid}/ordenar", json={"tipo": "subprojetos", "ids": [semanas["Semana 2"], s1]}).status_code == 200
 	# reimportar (com uma tarefa nova) não desfaz a ordem; a nova vai para o fim
 	client.post("/api/planos/importar", json={"texto": PIANO.replace("- [ ] Escala de Dó", "- [ ] Arpejo | 15min\n- [ ] Escala de Dó")})
 	ordem = sorted(client.get(f"/api/projetos/{s1}/itens").json(), key=lambda i: i["ordem"])

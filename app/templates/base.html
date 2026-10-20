@@ -72,7 +72,9 @@
 						fetch(`/api/projetos/${ul.dataset.projeto}/ordenar`, {
 							method: "POST", headers: { "Content-Type": "application/json" },
 							body: JSON.stringify({ tipo: ul.dataset.ordenar, ids }),
-						}).then((r) => { if (!r.ok) throw new Error(r.status); })
+						}).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+							// tarefas em ordem: horários refeitos (ou aviso) -> recarrega para mostrar as datas novas
+							.then((j) => { if (j.reorganizadas !== 0) location.reload(); })
 							.catch(() => window.mostrarAviso("Não consegui salvar a nova ordem. Recarregue a página."));
 					},
 				});
@@ -109,7 +111,8 @@
 					if (recorrente) corpo.append("orig", d.orig);
 					return fetch(`/mover/${d.item}`, { method: "POST", body: corpo })
 						.then((r) => { if (!r.ok) return r.json().then((j) => { throw new Error(j.detail || r.status); }); })
-						.catch((e) => window.mostrarAviso(`Não consegui mover: ${e.message}`));
+						// o aviso precisa sobreviver ao reload que desfaz o arrasto na tela
+						.catch((e) => { try { sessionStorage.setItem("aviso", `Não deu para mover: ${e.message}`); } catch (_) { window.mostrarAviso(e.message); } });
 				};
 				voltar.onclick = () => { dlg.close("voltar"); enviar(d.orig, "").finally(() => location.reload()); };
 				dlg.onclose = () => {
@@ -124,6 +127,8 @@
 		const iniciarArrastos = () => { window.iniciarOrdenacao(); window.iniciarArrastarAgenda(); };
 		if (window.Sortable) iniciarArrastos();
 		else document.addEventListener("DOMContentLoaded", iniciarArrastos, { once: true });
+		// Aviso guardado antes de um reload (ex.: mover recusado no calendário)
+		try { const av = sessionStorage.getItem("aviso"); if (av) { sessionStorage.removeItem("aviso"); window.mostrarAviso(av); } } catch (_) {}
 		// Avisos que vieram com a página: somem sozinhos
 		document.querySelectorAll("#toasts .toast").forEach((t) => setTimeout(() => t.remove(), 9000));
 	</script>
