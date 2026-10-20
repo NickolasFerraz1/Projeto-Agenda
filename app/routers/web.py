@@ -103,6 +103,7 @@ templates.env.filters.update(
 	recorrencia=recorrencia.descrever,
 )
 templates.env.globals.update(
+	timedelta_min=lambda m: timedelta(minutes=m),
 	ROTULOS=ROTULOS,
 	PRIORIDADES=[p.value for p in Prioridade],
 	TIPOS=[t.value for t in TipoItem],

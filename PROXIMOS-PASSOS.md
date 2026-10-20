@@ -19,7 +19,7 @@ _Atualizado em 20/10/2026_
 | 6.1 | **Pular dia de recorrente** | ✅ botão ⏭ na linha da agenda (Hoje/Semana); pulado ≠ feito; no Google o dia some (EXDATE); no espelho fica tracejado e libera o horário |
 | 6.2 | **Visão de mês** | ✅ seletor Semana \| Mês; grade seg–dom com até 3 itens por dia (+N), no celular pontinhos coloridos; tocar no dia abre o painel com ✓/⏭ e "+ Item" |
 | 6.3 | **Ordenar arrastando** | ✅ alça ⠿ nas tarefas em aberto e nas etapas/subprojetos (mouse e toque); agendamento segue a nova ordem; reimportar o plano não desfaz |
-| 6.3.1 | **Mover arrastando no Calendário** | ✅ Semana (PC e celular, segurar ~¼ s) e Mês (PC): solta → janela "Mover" com dia e hora; recorrente move só aquela ocorrência (Google: EXDATE + evento avulso) |
+| 6.3.1 | **Mover arrastando no Calendário** | ✅ Semana (PC e celular, segurar ~¼ s) e Mês (PC): soltar em outro dia move na hora (mesmo horário, aviso com "Desfazer"); no mesmo dia abre a janela "Mover" (sugere logo depois do item de cima); recorrente move só aquela ocorrência (Google: EXDATE + evento avulso) |
 | 6.3.2 | **Tarefas em ordem (dependentes)** | ✅ opção no projeto (herdada pelas etapas; planos importados já vêm ligados): no calendário a tarefa não passa da anterior/seguinte. Reordenar no projeto refaz os horários marcados em qualquer projeto (livre ou em ordem) |
 | 6.4 | **Botão no Obsidian**: endpoint com token + comando no Obsidian (Shell Commands/QuickAdd) → `/api/planos/importar` | próximo |
 | 6.5 | **Plano com IA**: objetivo → plano no formato do importador → prévia → importar. Decidir modelo/custo; ideia de um modelo especializado em planos | — |
@@ -50,7 +50,7 @@ _Atualizado em 20/10/2026_
 - Projeto livre (desligado): calendário livre (a reorganização ao reordenar vale igual).
 - Cuidado no `base.html`: o script do fim do body roda de novo a cada navegação do hx-boost — nada de `const`/`let` no nível de cima (redeclarar quebra tudo).
 
-104 testes passando. `ASSET_VERSION` = 14.
+104 testes passando. `ASSET_VERSION` = 15.
 
 ## Ao retomar
 1. Conferir se os zips 6.1, 6.2, 6.2.1 e 6.2.2 (app) e 6.1 (espelho) foram extraídos, commitados e atualizados no Pi.

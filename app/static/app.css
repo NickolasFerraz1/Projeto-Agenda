@@ -436,3 +436,5 @@ code { background: var(--sup2); border-radius: 4px; padding: 1px 5px; font-size:
 .dialogo h2 { margin: 0 0 10px; font-size: 17px; overflow-wrap: anywhere; }
 .dialogo .acoes { margin-top: 14px; }
 .dialogo [hidden] { display: none !important; }
+.toast { display: flex; align-items: center; gap: 12px; }
+.toast-acao { margin-left: auto; background: transparent; border: 1px solid var(--acento); color: var(--acento); border-radius: 8px; padding: 4px 10px; cursor: pointer; font: inherit; font-size: 13px; }
