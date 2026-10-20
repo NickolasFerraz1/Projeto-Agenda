@@ -172,3 +172,26 @@ def test_pular_dia_de_recorrente(client, area_id):
 	unico = client.post("/api/itens", json={"titulo": "X", "area_id": area_id, "inicio": f"{hoje}T10:00:00"}).json()
 	assert client.post(f"/pular/{unico['id']}?dia={hoje}").status_code == 422
 	assert client.post(f"/pular/{it['id']}?dia={hoje - timedelta(days=3)}").status_code == 422
+
+
+def test_visao_de_mes(client, area_id):
+	client.post("/api/itens", json={"titulo": "Consulta", "area_id": area_id, "inicio": "2026-02-10T09:00:00"})
+	client.post("/api/itens", json={"titulo": "Entrega", "area_id": area_id, "prazo": "2026-02-27T23:59:00"})
+	client.post("/api/itens", json={"titulo": "Piano", "area_id": area_id, "inicio": "2026-01-26T19:00:00",
+		"recorrencia": "FREQ=WEEKLY;BYDAY=TU"})
+	for n in range(4):  # 4 itens no mesmo dia: 3 aparecem + "+1"
+		client.post("/api/itens", json={"titulo": f"T{n}", "area_id": area_id, "inicio": f"2026-02-12T1{n}:00:00"})
+	html = client.get("/mes?m=2026-02").text
+	# fevereiro/2026 começa num domingo: grade de seg 26/01 a dom 01/03 = 5 semanas
+	assert html.count('class="mes-dia') == 35
+	assert "Fevereiro 2026" in html and "Consulta" in html and "⏰" in html and "+1" in html
+	assert html.count(">Piano<") == 5  # terças de 27/01 a 24/02 (a de 27/01 aparece apagada, fora do mês)
+	# painel do dia (padrão: dia 1 quando o mês não é o atual) e via HTMX
+	assert 'id="painel-dia"' in html
+	painel = client.get("/mes/dia/2026-02-10").text
+	assert "Consulta" in painel and "<html" not in painel
+	assert "Nada marcado" in client.get("/mes/dia/2026-02-11").text
+	# dia escolhido na URL, mês inválido cai no atual, seletor Semana | Mês nas duas telas
+	assert "terça, 10 de fev" in client.get("/mes?m=2026-02&dia=2026-02-10").text
+	assert client.get("/mes?m=xx").status_code == 200
+	assert 'class="alternar-vista"' in client.get("/semana").text

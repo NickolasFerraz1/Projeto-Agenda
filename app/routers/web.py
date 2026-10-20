@@ -395,6 +395,63 @@ def pagina_semana(request: Request, inicio: date | None = None, session: Session
 	)
 
 
+# ---------- Mês ----------
+MESES_LONGO = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+
+
+def _ler_mes(m: str | None) -> date:
+	"""'AAAA-MM' -> 1º dia do mês (inválido ou vazio: mês atual)."""
+	try:
+		ano, mes = (int(x) for x in (m or "").split("-"))
+		return date(ano, mes, 1)
+	except ValueError:
+		return date.today().replace(day=1)
+
+
+def _mes_vizinho(primeiro: date, delta: int) -> date:
+	n = primeiro.year * 12 + primeiro.month - 1 + delta
+	return date(n // 12, n % 12 + 1, 1)
+
+
+def _painel_dia(session: Session, d: date) -> dict:
+	return {"dia_sel": d, "entradas_dia": api_agenda.montar_agenda(session, d, d)}
+
+
+@router.get("/mes", response_class=HTMLResponse)
+def pagina_mes(request: Request, m: str | None = None, dia: date | None = None, session: Session = Depends(get_session)):
+	"""Grade do mês (segunda a domingo, 5 ou 6 semanas) + painel com o dia escolhido."""
+	primeiro = _ler_mes(m) if m else (dia or date.today()).replace(day=1)
+	proximo = _mes_vizinho(primeiro, 1)
+	ultimo = proximo - timedelta(days=1)
+	ini = primeiro - timedelta(days=primeiro.weekday())
+	fim = ultimo + timedelta(days=6 - ultimo.weekday())
+	entradas = api_agenda.montar_agenda(session, ini, fim)
+	por_dia: dict[date, list] = {}
+	for e in entradas:
+		por_dia.setdefault(e.data, []).append(e)
+	semanas = [[ini + timedelta(days=7 * s + d) for d in range(7)] for s in range(((fim - ini).days + 1) // 7)]
+	hoje = date.today()
+	sel = dia if dia and ini <= dia <= fim else (hoje if primeiro <= hoje <= ultimo else primeiro)
+	return render(
+		request,
+		"mes.html",
+		session,
+		primeiro=primeiro,
+		titulo_mes=f"{MESES_LONGO[primeiro.month - 1]} {primeiro.year}",
+		semanas=semanas,
+		por_dia=por_dia,
+		anterior=_mes_vizinho(primeiro, -1),
+		proximo=proximo,
+		**_painel_dia(session, sel),
+	)
+
+
+@router.get("/mes/dia/{d}", response_class=HTMLResponse)
+def mes_painel(request: Request, d: date, session: Session = Depends(get_session)):
+	"""Painel de um dia (ao tocar na grade do mês)."""
+	return render(request, "partials/mes_dia.html", session, **_painel_dia(session, d))
+
+
 # ---------- Projetos ----------
 def _abertos_na_subarvore(session: Session, arv: Arvore) -> dict[int, int]:
 	"""Quantos itens em aberto cada projeto tem, contando os subprojetos."""

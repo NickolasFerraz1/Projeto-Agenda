@@ -368,3 +368,46 @@ label.check input[type=radio] { accent-color: var(--acento); }
 .htmx-request .btn-sync .giro { animation: girar 1s linear infinite; }
 @keyframes girar { to { transform: rotate(360deg); } }
 code { background: var(--sup2); border-radius: 4px; padding: 1px 5px; font-size: .9em; overflow-wrap: anywhere; }
+
+/* ---------- Semana | Mês ---------- */
+.alternar-vista { display: inline-flex; background: var(--sup2); border: 1px solid var(--borda); border-radius: 10px; padding: 3px; margin-bottom: 12px; }
+.alternar-vista a { padding: 5px 16px; border-radius: 7px; color: var(--fraco); font-size: 14px; text-decoration: none; }
+.alternar-vista a.on { background: var(--sup); color: var(--texto); box-shadow: 0 1px 3px rgb(0 0 0 / .3); }
+
+/* ---------- Mês ---------- */
+.mes { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.mes-semana-nome { font-size: 12px; color: var(--fraco); text-align: center; padding: 2px 0 4px; text-transform: uppercase; letter-spacing: .05em; }
+.mes-semana-nome.fds { opacity: .7; }
+.mes-dia {
+	display: flex; flex-direction: column; gap: 3px; min-height: 104px; padding: 5px 5px 6px; border-radius: 8px;
+	background: var(--sup); border: 1px solid var(--borda); color: inherit; text-decoration: none; overflow: hidden;
+}
+.mes-dia:hover { border-color: var(--fraco); }
+.mes-dia.fds { background: color-mix(in srgb, var(--sup) 80%, var(--fundo)); }
+.mes-dia.fora { opacity: .4; }
+.mes-dia.passado .mes-itens { opacity: .65; }
+.mes-dia.sel { border-color: var(--acento); box-shadow: 0 0 0 1px var(--acento); }
+.mes-num { font-size: 13px; font-weight: 600; color: var(--fraco); font-variant-numeric: tabular-nums; }
+.mes-dia.hoje .mes-num { color: #06121a; background: var(--acento); border-radius: 99px; width: 22px; height: 22px; display: grid; place-items: center; }
+.mes-itens { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mes-item { display: flex; gap: 4px; align-items: baseline; font-size: 11.5px; line-height: 1.25; border-left: 2px solid var(--cor); padding-left: 4px; min-width: 0; }
+.mes-item.e-prazo { border-left-style: dashed; }
+.mes-item.feito { opacity: .5; }
+.mes-item.feito .mes-titulo { text-decoration: line-through; }
+.mes-hora { color: var(--fraco); font-variant-numeric: tabular-nums; flex: none; }
+.mes-titulo { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.mes-mais { font-size: 11px; color: var(--fraco); padding-left: 6px; }
+/* Celular: sem espaço para texto; cada item vira um ponto na cor da área */
+@media (max-width: 640px) {
+	.mes { gap: 2px; }
+	.mes-dia { min-height: 58px; padding: 4px 3px; align-items: center; }
+	.mes-itens { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 3px; }
+	.mes-item { width: 7px; height: 7px; padding: 0; border: 0; border-radius: 50%; background: var(--cor); }
+	.mes-item.e-prazo { background: transparent; box-shadow: inset 0 0 0 1.5px var(--cor); }
+	.mes-hora, .mes-titulo { display: none; }
+	.mes-mais { padding: 0; font-size: 10px; line-height: 7px; }
+}
+.painel-dia { margin-top: 18px; }
+.painel-dia header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.painel-dia h2 { font-size: 16px; margin: 0; }
+.painel-dia h2::first-letter { text-transform: uppercase; }

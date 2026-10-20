@@ -3,6 +3,8 @@
 {% set aba = "semana" %}
 {% block titulo %}Semana · Agenda{% endblock %}
 {% block conteudo %}
+{% set vista = "semana" %}{% set ref = seg if not (seg <= hoje <= dom) else hoje %}
+{% include "partials/vista_alternar.html" %}
 <div class="cabecalho-pagina">
 	<a class="btn-icone" href="/semana?inicio={{ anterior.isoformat() }}" aria-label="Semana anterior">{{ icone("esq", 20) }}</a>
 	<h1 class="titulo-pagina">{{ seg.strftime('%d/%m') }} – {{ dom.strftime('%d/%m') }}</h1>

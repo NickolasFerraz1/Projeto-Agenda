@@ -9,14 +9,14 @@ _Atualizado em 20/10/2026_
   - 5.4 Google Agenda (só o Pi sincroniza; PC e notebook com `AGENDA_GCAL_ID` comentado)
   - 5.5 espelho lendo `/api/hoje` e `/api/agenda` (repo MagicMirror)
 - App instalado como PWA no notebook e no celular (falta o PC): `https://magicmirror.tailc1dcbd.ts.net`.
-- **6.1 Pular dia de recorrente** ✅ (ver abaixo).
+- **6.1 Pular dia de recorrente** ✅ · **6.2 Visão de mês** ✅ (ver abaixo).
 
 ## Fase 6 — melhorias no app (em andamento)
 | # | Item | Status |
 |---|---|---|
 | 6.1 | **Pular dia de recorrente** | ✅ botão ⏭ na linha da agenda (Hoje/Semana); pulado ≠ feito; no Google o dia some (EXDATE); no espelho fica tracejado e libera o horário |
-| 6.2 | **Visão de mês** no app (depois, talvez página no espelho) | próximo |
-| 6.3 | **Ordenar tarefas arrastando** dentro do projeto (campo `ordem` já existe; precisa funcionar no toque) | — |
+| 6.2 | **Visão de mês** | ✅ seletor Semana \| Mês; grade seg–dom com até 3 itens por dia (+N), no celular pontinhos coloridos; tocar no dia abre o painel com ✓/⏭ e "+ Item" |
+| 6.3 | **Ordenar tarefas arrastando** dentro do projeto (campo `ordem` já existe; precisa funcionar no toque) | próximo |
 | 6.4 | **Botão no Obsidian**: endpoint com token + comando no Obsidian (Shell Commands/QuickAdd) → `/api/planos/importar` | — |
 | 6.5 | **Plano com IA**: objetivo → plano no formato do importador → prévia → importar. Decidir modelo/custo; ideia de um modelo especializado em planos | — |
 
@@ -24,7 +24,12 @@ _Atualizado em 20/10/2026_
 - Recorrente na agenda: ✓ = fiz · ⏭ = pulei (não fiz e não vou fazer). ⏭ de novo desfaz; ✓ num dia pulado vira feito.
 - Rotas: `POST /pular/{id}?dia=AAAA-MM-DD` (web) e `PUT /api/itens/{id}/ocorrencias` com `status: "pulado"` (API).
 - Google: dias pulados viram `EXDATE` no evento recorrente.
-- 92 testes passando. `ASSET_VERSION` = 9.
+
+### 6.2 — como funciona
+- `/mes?m=AAAA-MM&dia=AAAA-MM-DD` (dados do `/api/agenda`, 5 ou 6 semanas); painel do dia via `/mes/dia/AAAA-MM-DD` (HTMX).
+- Ideia guardada: levar o mês para o espelho como terceiro modo do MMM-Agenda.
+
+93 testes passando. `ASSET_VERSION` = 10.
 
 ## Como retomar
 ```powershell

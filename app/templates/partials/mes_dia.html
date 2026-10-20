@@ -1,0 +1,15 @@
+{% from "_macros.html" import icone %}
+{# Painel do dia escolhido na grade do mês #}
+<section class="painel-dia" id="painel-dia">
+	<header>
+		<h2>{{ dia_sel|dia(True) }}</h2>
+		<a class="btn-sec" href="/itens/novo?data={{ dia_sel.isoformat() }}&voltar={{ ('/mes?m=' ~ dia_sel.strftime('%Y-%m') ~ '&dia=' ~ dia_sel.isoformat())|urlencode }}">{{ icone("mais", 16) }} Item</a>
+	</header>
+	{% if entradas_dia %}
+	<ul class="lista">
+		{% for e in entradas_dia %}{% include "partials/linha_entrada.html" %}{% endfor %}
+	</ul>
+	{% else %}
+	<p class="vazio">Nada marcado.</p>
+	{% endif %}
+</section>
