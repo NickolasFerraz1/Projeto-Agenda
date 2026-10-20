@@ -1,10 +1,11 @@
 {% from "_macros.html" import icone, prioridade, barra %}
 {# Uma linha da agenda (Entrada). Recorrente: o "feito" vale só para o dia. #}
-{% set feito = e.status in ("concluido", "pulado") %}
-<li class="linha-item {{ 'feito' if feito }} {{ 'e-prazo' if e.tipo_entrada == 'prazo' }}" style="--cor: {{ e.area_cor }}">
+{% set feito = e.status == "concluido" %}
+{% set pulado = e.status == "pulado" %}
+<li class="linha-item {{ 'feito' if feito }} {{ 'pulado' if pulado }} {{ 'e-prazo' if e.tipo_entrada == 'prazo' }}" style="--cor: {{ e.area_cor }}">
 	<button class="marcar" aria-label="{{ 'Desmarcar' if feito else 'Marcar como feito' }}"
 		hx-post="/alternar/{{ e.item_id }}?tipo={{ e.tipo_entrada }}&dia={{ e.data.isoformat() }}"
-		hx-target="closest li" hx-swap="outerHTML">{{ icone("check", 14) }}</button>
+		hx-target="closest li" hx-swap="outerHTML">{{ icone("pular" if pulado else "check", 14) }}</button>
 	<span class="quando">
 		{%- if e.tipo_entrada == "prazo" %}<span class="tag-prazo">{{ icone("prazo", 12) }} prazo</span>{% if e.inicio and e.inicio.strftime('%H:%M') != '23:59' %}<br>{{ e.inicio|hora }}{% endif %}
 		{%- elif e.dia_inteiro %}dia todo
@@ -16,9 +17,16 @@
 			<span class="ponto"></span>{{ e.projeto_caminho or e.area_nome }}
 			{%- if e.duracao_min and not e.fim %} · {{ e.duracao_min|duracao }}{% endif %}
 			{%- if e.recorrente %} · {{ icone("repete", 12) }}{% endif %}
-			{%- if e.status == "pulado" %} · pulado{% endif %}
+			{%- if pulado %} · pulado{% endif %}
 			{{ prioridade(e.prioridade) }}
 			{{ barra(e.progresso) }}
 		</span>
 	</a>
+	{% if e.recorrente and e.tipo_entrada == "agendado" and not feito %}
+	<span class="botoes-linha">
+		<button class="btn-pular {{ 'on' if pulado }}" title="{{ 'Desfazer: não pulou' if pulado else 'Pular este dia' }}"
+			aria-label="{{ 'Desfazer pular' if pulado else 'Pular' }} {{ e.titulo }} em {{ e.data|dia }}"
+			hx-post="/pular/{{ e.item_id }}?dia={{ e.data.isoformat() }}" hx-target="closest li" hx-swap="outerHTML">{{ icone("pular", 14) }}</button>
+	</span>
+	{% endif %}
 </li>

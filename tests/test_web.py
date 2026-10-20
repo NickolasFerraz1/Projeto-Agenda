@@ -148,3 +148,27 @@ def test_recorrencia_presets():
 	assert recorrencia.descrever("FREQ=WEEKLY;BYDAY=MO,WE,FR") == "toda seg, qua e sex"
 	assert recorrencia.descrever("FREQ=DAILY;UNTIL=20261212T235959") == "todo dia até 12/12/2026"
 	assert recorrencia.ler_regra(recorrencia.montar_regra("WEEKLY", ["FR", "MO"], date(2026, 12, 1)))["dias"] == ["MO", "FR"]
+
+
+def test_pular_dia_de_recorrente(client, area_id):
+	from datetime import date, timedelta
+
+	hoje = date.today()
+	it = client.post("/api/itens", json={"titulo": "Piano", "area_id": area_id, "inicio": f"{hoje}T19:00:00",
+		"recorrencia": "FREQ=DAILY"}).json()
+	# pular: linha volta com estado "pulado" e o botão de desfazer
+	r = client.post(f"/pular/{it['id']}?dia={hoje}")
+	assert r.status_code == 200 and "pulado" in r.text and "Desfazer" in r.text
+	dia = client.get(f"/api/agenda?de={hoje}&ate={hoje}").json()
+	assert dia[0]["status"] == "pulado"
+	# marcar como feito um dia pulado: vira concluído (não desmarca)
+	client.post(f"/alternar/{it['id']}?tipo=agendado&dia={hoje}")
+	assert client.get(f"/api/agenda?de={hoje}&ate={hoje}").json()[0]["status"] == "concluido"
+	# pular de novo e desfazer: volta a "a fazer"
+	client.post(f"/pular/{it['id']}?dia={hoje}")
+	client.post(f"/pular/{it['id']}?dia={hoje}")
+	assert client.get(f"/api/agenda?de={hoje}&ate={hoje}").json()[0]["status"] == "a_fazer"
+	# só recorrentes, e só em dias em que o item acontece
+	unico = client.post("/api/itens", json={"titulo": "X", "area_id": area_id, "inicio": f"{hoje}T10:00:00"}).json()
+	assert client.post(f"/pular/{unico['id']}?dia={hoje}").status_code == 422
+	assert client.post(f"/pular/{it['id']}?dia={hoje - timedelta(days=3)}").status_code == 422

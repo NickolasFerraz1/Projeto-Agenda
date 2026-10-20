@@ -289,8 +289,10 @@ def alternar(
 	item = get_or_404(session, Item, item_id)
 	if item.recorrencia and dia:
 		oc = session.exec(select(Ocorrencia).where(Ocorrencia.item_id == item_id, Ocorrencia.data == dia)).first()
-		if oc:
-			session.delete(oc)
+		if oc and oc.status == StatusOcorrencia.concluido:
+			session.delete(oc)  # desmarca
+		elif oc:
+			oc.status = StatusOcorrencia.concluido  # estava pulado: passa a feito
 		else:
 			session.add(Ocorrencia(item_id=item_id, data=dia, status=StatusOcorrencia.concluido))
 	else:
@@ -306,6 +308,25 @@ def alternar(
 	return _com_avisos(
 		render(request, "partials/linha_item.html", session, i=item_out(session, item), caminhos=_caminhos(session, rel), rel=rel)
 	)
+
+
+@router.post("/pular/{item_id}", response_class=HTMLResponse)
+def pular(request: Request, item_id: int, dia: date, session: Session = Depends(get_session)):
+	"""Recorrente: marca o dia como pulado (não fez e não vai fazer). De novo no mesmo dia: desfaz."""
+	item = get_or_404(session, Item, item_id)
+	if not item.recorrencia:
+		raise HTTPException(422, "só itens recorrentes podem pular um dia")
+	if not recorrencia.ocorrencias(item.recorrencia, item.inicio, dia, dia):
+		raise HTTPException(422, "este item não acontece nesse dia")
+	oc = session.exec(select(Ocorrencia).where(Ocorrencia.item_id == item_id, Ocorrencia.data == dia)).first()
+	if oc and oc.status == StatusOcorrencia.pulado:
+		session.delete(oc)
+	elif oc:
+		oc.status = StatusOcorrencia.pulado
+	else:
+		session.add(Ocorrencia(item_id=item_id, data=dia, status=StatusOcorrencia.pulado))
+	session.commit()
+	return render(request, "partials/linha_entrada.html", e=_linha_entrada(session, item, "agendado", dia))
 
 
 @router.post("/incrementar/{item_id}", response_class=HTMLResponse)

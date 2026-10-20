@@ -6,7 +6,7 @@ Cria o que falta, atualiza o que mudou (hash) e apaga o que sobrou. Não guarda 
 banco: se algo se perder, a próxima rodada conserta.
 
 - Item com horário (ou dia inteiro) e em aberto -> evento (cor pela prioridade).
-- Recorrente -> evento recorrente com a mesma RRULE.
+- Recorrente -> evento recorrente com a mesma RRULE; dias pulados saem (EXDATE).
 - Concluído -> fica na agenda com "✓" e sem lembretes. Cancelado ou sem data -> sai.
 - Prazo de item em aberto -> evento "⏰ Prazo: …".
 """
@@ -23,7 +23,7 @@ from zoneinfo import ZoneInfo
 from sqlmodel import Session, select
 
 from app import config
-from app.models import Area, Item, Prioridade, StatusItem
+from app.models import Area, Item, Ocorrencia, Prioridade, StatusItem, StatusOcorrencia
 from app.services.progresso import Arvore
 
 log = logging.getLogger("agenda.gcal")
@@ -62,6 +62,13 @@ def _until_utc(regra: str, dia_inteiro: bool) -> str:
 	return ";".join(partes)
 
 
+def _exdate(dias: list, inicio: datetime, dia_inteiro: bool) -> str:
+	"""Dias pulados de um recorrente: EXDATE no mesmo formato do início do evento."""
+	if dia_inteiro:
+		return "EXDATE;VALUE=DATE:" + ",".join(f"{d:%Y%m%d}" for d in dias)
+	return f"EXDATE;TZID={config.TIMEZONE}:" + ",".join(f"{d:%Y%m%d}T{inicio:%H%M%S}" for d in dias)
+
+
 def _quando(inicio: datetime, fim: datetime | None, dia_inteiro: bool, padrao: timedelta) -> dict:
 	if dia_inteiro:
 		return {"start": {"date": inicio.date().isoformat()}, "end": {"date": (inicio.date() + timedelta(days=1)).isoformat()}}
@@ -85,6 +92,9 @@ def eventos_desejados(session: Session) -> dict[str, dict]:
 	"""{chave: corpo do evento}. Chave = "item:<id>" ou "prazo:<id>"."""
 	arv = Arvore.carregar(session)
 	areas = {a.id: a.nome for a in session.exec(select(Area)).all()}
+	pulados: dict[int, list] = {}  # recorrentes: dias pulados viram EXDATE (o evento some só nesse dia)
+	for oc in session.exec(select(Ocorrencia).where(Ocorrencia.status == StatusOcorrencia.pulado).order_by(Ocorrencia.data)).all():
+		pulados.setdefault(oc.item_id, []).append(oc.data)
 	desejados: dict[str, dict] = {}
 	for it in session.exec(select(Item).where(Item.status != StatusItem.cancelado)).all():
 		contexto = arv.caminho_texto(it.projeto_id) if it.projeto_id else areas.get(it.area_id, "")
@@ -99,6 +109,8 @@ def eventos_desejados(session: Session) -> dict[str, dict]:
 			}
 			if it.recorrencia:
 				corpo["recurrence"] = ["RRULE:" + _until_utc(it.recorrencia, it.dia_inteiro)]
+				if pulados.get(it.id):
+					corpo["recurrence"].append(_exdate(pulados[it.id], it.inicio, it.dia_inteiro))
 			desejados[f"item:{it.id}"] = corpo
 		if it.prazo and not feito:
 			sem_hora = it.prazo.time() == hora(23, 59)  # prazo sem hora = o dia todo

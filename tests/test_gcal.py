@@ -141,3 +141,24 @@ def test_botao_htmx_devolve_cartao_e_toast(client, area_id, monkeypatch):
 	assert "1 criados" in r.headers["HX-Trigger"]
 	r = client.post("/google/sincronizar", headers={"HX-Request": "true"})
 	assert "em dia" in r.headers["HX-Trigger"]
+
+
+def test_dia_pulado_vira_exdate(client, area_id):
+	g = GoogleFalso()
+	aula = client.post("/api/itens", json={"titulo": "Aula", "area_id": area_id, "inicio": "2026-10-20T19:00:00",
+		"recorrencia": "FREQ=WEEKLY;BYDAY=TU,TH"}).json()
+	feriado = client.post("/api/itens", json={"titulo": "Yoga", "area_id": area_id, "inicio": "2026-10-20T00:00:00",
+		"dia_inteiro": True, "recorrencia": "FREQ=DAILY"}).json()
+	_sync(g)
+	assert g.por_chave()[f"item:{aula['id']}"]["recurrence"] == ["RRULE:FREQ=WEEKLY;BYDAY=TU,TH"]
+	client.post(f"/pular/{aula['id']}?dia=2026-10-22")
+	client.post(f"/pular/{aula['id']}?dia=2026-10-27")
+	client.post(f"/pular/{feriado['id']}?dia=2026-10-21")
+	r = _sync(g)
+	assert r.atualizados == 2
+	ev = g.por_chave()
+	assert ev[f"item:{aula['id']}"]["recurrence"][1] == "EXDATE;TZID=America/Sao_Paulo:20261022T190000,20261027T190000"
+	assert ev[f"item:{feriado['id']}"]["recurrence"][1] == "EXDATE;VALUE=DATE:20261021"
+	client.post(f"/pular/{aula['id']}?dia=2026-10-22")  # desfaz um
+	_sync(g)
+	assert g.por_chave()[f"item:{aula['id']}"]["recurrence"][1].endswith(":20261027T190000")
