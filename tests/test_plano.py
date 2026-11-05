@@ -195,3 +195,23 @@ def test_texto_com_link_do_obsidian_vira_link_no_projeto(client):
 	pid = client.post("/api/planos/importar", json={"texto": txt}).json()["projeto_id"]
 	links = client.get(f"/api/projetos/{pid}").json()["links"]
 	assert any(l["url"].startswith("obsidian://open?vault=Notas") for l in links)
+
+
+def test_andamento_mostra_a_etapa_atual(client, area_id):
+	pid = client.post("/api/planos/importar", json={"texto": PIANO}).json()["projeto_id"]
+	client.post("/api/projetos", json={"nome": "Sem etapas", "area_id": area_id})  # não é plano
+	(piano,) = client.get("/api/planos/andamento").json()
+	assert (piano["projeto_id"], piano["nome"], piano["etapa"]) == (pid, "Piano", "Semana 1")
+	assert (piano["tarefas_feitas"], piano["tarefas_total"]) == (1, 3)
+	assert piano["proxima"]["titulo"] == "Notas do teclado" and piano["area_cor"].startswith("#")
+
+	# Termina a Semana 1: a atual passa a ser a 2 (e a etapa dentro dela fica para depois)
+	s1 = client.get(f"/api/projetos?pai_id={pid}").json()[0]
+	for it in client.get(f"/api/projetos/{s1['id']}/itens").json():
+		client.patch(f"/api/itens/{it['id']}", json={"status": "concluido"})
+	(piano,) = client.get("/api/planos/andamento").json()
+	assert piano["etapa"] == "Semana 2" and piano["proxima"]["titulo"] == "Acordes maiores"
+
+	# Pausado sai da lista
+	client.patch(f"/api/projetos/{pid}", json={"status": "pausado"})
+	assert client.get("/api/planos/andamento").json() == []

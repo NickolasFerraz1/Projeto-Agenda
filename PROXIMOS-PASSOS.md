@@ -56,12 +56,16 @@ _Atualizado em 20/10/2026_
 - Os blocos têm `hx-boost="false"` (o clique é tratado pelo script: um = abre, dois = janela "Mover").
 - "Passou do horário": só para hoje (no dia seguinte vira "atrasada").
 
+### Espelho — etapa atual dos planos
+- `GET /api/planos/andamento?limite=3`: projetos de topo **com etapas**, ativos e não concluídos; para cada um, a etapa atual (1ª em aberto e liberada; só desce para `###` quando a `##` não tem mais tarefa própria em aberto), tarefas feitas/total da etapa, % e a próxima tarefa.
+- Ordem: quem tem tarefa marcada mais cedo (de hoje em diante) primeiro. Usado pelo MMM-Agenda (página Agenda do espelho).
+
 ### 6.4 — como funciona
 - Plugin em JS puro (sem build): `obsidian/agenda/{manifest.json,main.js,styles.css}`; o app serve o zip em `/obsidian/plugin.zip` (já com a pasta `projeto-agenda/`).
 - Usa `requestUrl` do Obsidian (sem CORS) nas rotas `/api/planos/previa` e `/api/planos/importar`; sem token: a proteção é o Tailscale, igual ao app.
 - Configuração no Obsidian: endereço do app + botão "Testar" (`/api/saude`).
 
-108 testes passando. `ASSET_VERSION` = 17.
+109 testes passando (os de reordenar agora usam datas em 2036: não envelhecem). `ASSET_VERSION` = 17.
 
 ## Ao retomar
 1. Instalar o PWA no PC (falta só ele).

@@ -259,8 +259,9 @@ def _plano_em_ordem(client, area_id):
 	p = client.post("/api/projetos", json={"nome": "Piano", "area_id": area_id, "tarefas_em_ordem": True}).json()
 	ids = {t: client.post("/api/itens", json={"titulo": t, "area_id": area_id, "projeto_id": p["id"], "duracao_min": 30}).json()["id"]
 		for t in ("Aula 1", "Aula 2", "Aula 3")}
+	# datas no futuro distante: o agendamento nunca marca no passado (o teste não envelhece)
 	r = client.post(f"/api/projetos/{p['id']}/agendar", json={"dias": ["MO", "WE"], "hora": "19:00", "minutos": 30,
-		"a_partir": "2026-11-02"})
+		"a_partir": "2036-11-03"})
 	assert r.status_code == 200
 	return p, ids
 
@@ -268,25 +269,25 @@ def _plano_em_ordem(client, area_id):
 def test_reordenar_tarefas_em_ordem_refaz_os_horarios(client, area_id):
 	p, ids = _plano_em_ordem(client, area_id)
 	ini = lambda t: client.get(f"/api/itens/{ids[t]}").json()["inicio"]  # noqa: E731
-	assert [ini("Aula 1"), ini("Aula 2"), ini("Aula 3")] == ["2026-11-02T19:00:00", "2026-11-04T19:00:00", "2026-11-09T19:00:00"]
+	assert [ini("Aula 1"), ini("Aula 2"), ini("Aula 3")] == ["2036-11-03T19:00:00", "2036-11-05T19:00:00", "2036-11-10T19:00:00"]
 	r = client.post(f"/api/projetos/{p['id']}/ordenar", json={"tipo": "itens", "ids": [ids["Aula 3"], ids["Aula 1"], ids["Aula 2"]]})
 	assert r.json() == {"reorganizadas": 3}
-	assert [ini("Aula 3"), ini("Aula 1"), ini("Aula 2")] == ["2026-11-02T19:00:00", "2026-11-04T19:00:00", "2026-11-09T19:00:00"]
+	assert [ini("Aula 3"), ini("Aula 1"), ini("Aula 2")] == ["2036-11-03T19:00:00", "2036-11-05T19:00:00", "2036-11-10T19:00:00"]
 	assert "Horários reorganizados" in client.get("/").text  # aviso na próxima página
 
 
 def test_calendario_nao_passa_da_vizinha(client, area_id):
 	p, ids = _plano_em_ordem(client, area_id)
 	# Aula 2 (qua 04/11): pode ir para ter 03/11 (entre a 1 e a 3)...
-	assert client.post(f"/mover/{ids['Aula 2']}", data={"data": "2026-11-03"}).status_code == 204
+	assert client.post(f"/mover/{ids['Aula 2']}", data={"data": "2036-11-04"}).status_code == 204
 	# ...mas não para antes da Aula 1 nem para depois da Aula 3
-	r = client.post(f"/mover/{ids['Aula 2']}", data={"data": "2026-11-02", "hora": "08:00"})
+	r = client.post(f"/mover/{ids['Aula 2']}", data={"data": "2036-11-03", "hora": "08:00"})
 	assert r.status_code == 422 and "Aula 1" in r.json()["detail"]
-	r = client.post(f"/mover/{ids['Aula 2']}", data={"data": "2026-11-10"})
+	r = client.post(f"/mover/{ids['Aula 2']}", data={"data": "2036-11-11"})
 	assert r.status_code == 422 and "Aula 3" in r.json()["detail"]
 	# projeto livre: no calendário move para qualquer lugar
 	client.patch(f"/api/projetos/{p['id']}", json={"tarefas_em_ordem": False})
-	assert client.post(f"/mover/{ids['Aula 2']}", data={"data": "2026-11-10"}).status_code == 204
+	assert client.post(f"/mover/{ids['Aula 2']}", data={"data": "2036-11-11"}).status_code == 204
 
 
 def test_plano_importado_vem_em_ordem_e_herda_nas_etapas(client):
@@ -302,4 +303,4 @@ def test_reordenar_projeto_livre_tambem_refaz_os_horarios(client, area_id):
 	client.patch(f"/api/projetos/{p['id']}", json={"tarefas_em_ordem": False})
 	r = client.post(f"/api/projetos/{p['id']}/ordenar", json={"tipo": "itens", "ids": [ids["Aula 2"], ids["Aula 1"], ids["Aula 3"]]})
 	assert r.json() == {"reorganizadas": 3}
-	assert client.get(f"/api/itens/{ids['Aula 2']}").json()["inicio"] == "2026-11-02T19:00:00"
+	assert client.get(f"/api/itens/{ids['Aula 2']}").json()["inicio"] == "2036-11-03T19:00:00"
