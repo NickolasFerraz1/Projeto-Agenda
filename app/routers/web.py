@@ -208,6 +208,22 @@ def _progresso_form(form) -> dict:
 
 
 # ---------- PWA ----------
+@router.get("/obsidian/plugin.zip")
+def plugin_obsidian():
+	"""Plugin "Agenda" do Obsidian (pasta obsidian/agenda do repo), pronto para extrair em
+	<cofre>/.obsidian/plugins/ (o zip já vem com a pasta projeto-agenda/)."""
+	import io
+	import zipfile
+
+	pasta = config.ROOT / "obsidian" / "agenda"
+	buf = io.BytesIO()
+	with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+		for nome in ("manifest.json", "main.js", "styles.css", "README.md"):
+			z.write(pasta / nome, f"projeto-agenda/{nome}")
+	return Response(buf.getvalue(), media_type="application/zip",
+		headers={"Content-Disposition": 'attachment; filename="obsidian-agenda.zip"'})
+
+
 @router.get("/manifest.webmanifest")
 def manifest():
 	return FileResponse(STATIC / "manifest.webmanifest", media_type="application/manifest+json")

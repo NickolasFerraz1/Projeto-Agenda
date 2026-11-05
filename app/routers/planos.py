@@ -1,5 +1,5 @@
-"""API do importador de planejamento (usada pela tela "Importar plano" e, no futuro, pelo
-botão "Enviar para a Agenda" dentro do Obsidian)."""
+"""API do importador de planejamento (usada pela tela "Importar plano" e pelo plugin
+"Agenda" do Obsidian, em obsidian/agenda: mesma prévia e mesma importação)."""
 from dataclasses import asdict
 
 from fastapi import APIRouter, Depends, HTTPException

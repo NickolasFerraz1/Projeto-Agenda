@@ -1,0 +1,9 @@
+{
+	"id": "projeto-agenda",
+	"name": "Agenda (Projeto Agenda)",
+	"version": "1.0.0",
+	"minAppVersion": "1.4.0",
+	"description": "Envia a nota de planejamento aberta para o app Projeto Agenda (prévia e confirmação antes de importar).",
+	"author": "Nickolas Ferraz",
+	"isDesktopOnly": false
+}

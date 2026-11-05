@@ -9,7 +9,7 @@ _Atualizado em 20/10/2026_
   - 5.4 Google Agenda (só o Pi sincroniza; PC e notebook com `AGENDA_GCAL_ID` comentado)
   - 5.5 espelho lendo `/api/hoje` e `/api/agenda` (repo MagicMirror)
 - App instalado como PWA no notebook e no celular (falta o PC): `https://magicmirror.tailc1dcbd.ts.net`.
-- **6.1 Pular dia de recorrente** ✅ · **6.2 Visão de mês** ✅ · **6.3 Ordenar arrastando** ✅ · **6.3.1 Mover arrastando no Calendário** ✅ · **6.3.2 Tarefas em ordem** ✅ · **6.3.3 Visão Dia** ✅ (ver abaixo).
+- **6.1 Pular dia de recorrente** ✅ · **6.2 Visão de mês** ✅ · **6.3 Ordenar arrastando** ✅ · **6.3.1 Mover arrastando no Calendário** ✅ · **6.3.2 Tarefas em ordem** ✅ · **6.3.3 Visão Dia** ✅ · **6.4 Botão no Obsidian** ✅ (ver abaixo).
 - Aba **Semana** renomeada para **Calendário** (dentro: seletor Semana | Mês).
 - App recarrega sozinho quando o servidor foi atualizado com a janela aberta (cabeçalho `X-Agenda-Versao` → `HX-Refresh`).
 
@@ -22,8 +22,8 @@ _Atualizado em 20/10/2026_
 | 6.3.1 | **Mover arrastando no Calendário** | ✅ Semana (PC e celular, segurar ~¼ s) e Mês (PC): soltar em outro dia move na hora (mesmo horário, aviso com "Desfazer"); no mesmo dia abre a janela "Mover" (sugere logo depois do item de cima); recorrente move só aquela ocorrência (Google: EXDATE + evento avulso) |
 | 6.3.2 | **Tarefas em ordem (dependentes)** | ✅ opção no projeto (herdada pelas etapas; planos importados já vêm ligados): no calendário a tarefa não passa da anterior/seguinte. Reordenar no projeto refaz os horários marcados em qualquer projeto (livre ou em ordem) |
 | 6.3.3 | **Visão Dia + "passou do horário"** | ✅ Calendário: Dia \| Semana \| Mês. Grade 00–24h (64 px/h), arrastar o bloco muda o horário (15 em 15 min; toque: segurar), toque duplo = hora exata, um toque abre o item. Hoje/Dia/espelho: tarefa de hoje que passou sem fazer fica vermelha |
-| 6.4 | **Botão no Obsidian**: endpoint com token + comando no Obsidian (Shell Commands/QuickAdd) → `/api/planos/importar` | próximo |
-| 6.5 | **Plano com IA**: objetivo → plano no formato do importador → prévia → importar. Decidir modelo/custo; ideia de um modelo especializado em planos | — |
+| 6.4 | **Botão no Obsidian** | ✅ plugin próprio "Agenda (Projeto Agenda)" (`obsidian/agenda`, baixar em Importar plano): ícone na barra lateral, comando e clique direito → prévia → Importar; acrescenta o link `obsidian:` para o projeto apontar de volta para a nota |
+| 6.5 | **Plano com IA**: objetivo → plano no formato do importador → prévia → importar. Decidir modelo/custo; ideia de um modelo especializado em planos | próximo |
 
 ### 6.1 — como funciona
 - Recorrente na agenda: ✓ = fiz · ⏭ = pulei (não fiz e não vou fazer). ⏭ de novo desfaz; ✓ num dia pulado vira feito.
@@ -56,13 +56,17 @@ _Atualizado em 20/10/2026_
 - Os blocos têm `hx-boost="false"` (o clique é tratado pelo script: um = abre, dois = janela "Mover").
 - "Passou do horário": só para hoje (no dia seguinte vira "atrasada").
 
-106 testes passando. `ASSET_VERSION` = 16.
+### 6.4 — como funciona
+- Plugin em JS puro (sem build): `obsidian/agenda/{manifest.json,main.js,styles.css}`; o app serve o zip em `/obsidian/plugin.zip` (já com a pasta `projeto-agenda/`).
+- Usa `requestUrl` do Obsidian (sem CORS) nas rotas `/api/planos/previa` e `/api/planos/importar`; sem token: a proteção é o Tailscale, igual ao app.
+- Configuração no Obsidian: endereço do app + botão "Testar" (`/api/saude`).
+
+108 testes passando. `ASSET_VERSION` = 17.
 
 ## Ao retomar
-1. Conferir se os zips 6.1, 6.2, 6.2.1 e 6.2.2 (app) e 6.1 (espelho) foram extraídos, commitados e atualizados no Pi.
-2. Recarregar o app uma última vez em cada aparelho (depois disso a recarga é automática).
-3. Instalar o PWA no PC.
-4. Seguir com a **6.4 — botão no Obsidian**.
+1. Instalar o PWA no PC (falta só ele).
+2. Instalar o plugin do Obsidian no PC (Importar plano → Botão no Obsidian) e testar com o plano do piano.
+3. Seguir com a **6.5 — plano com IA** (decidir modelo/custo antes) ou adiantar a **7.0** do espelho (`sensord.py`).
 
 ## Como retomar (desenvolvimento)
 ```powershell

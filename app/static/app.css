@@ -473,3 +473,5 @@ code { background: var(--sup2); border-radius: 4px; padding: 1px 5px; font-size:
 .linha-item.passou { border-left-color: var(--critica); }
 .linha-item.passou .quando { color: var(--critica); }
 .tag-passou { color: var(--critica); }
+.passos { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; line-height: 1.5; }
+kbd { background: var(--sup2); border: 1px solid var(--borda); border-radius: 4px; padding: 0 5px; font-size: .9em; }

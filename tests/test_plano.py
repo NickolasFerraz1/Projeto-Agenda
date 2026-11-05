@@ -174,3 +174,24 @@ def test_ordenar_valida_ids(client, area_id):
 	assert client.post(f"/api/projetos/{a['id']}/ordenar", json={"tipo": "itens", "ids": [ia["id"], ia["id"]]}).status_code == 422
 	assert client.post(f"/api/projetos/{a['id']}/ordenar", json={"tipo": "outro", "ids": [ia["id"]]}).status_code == 422
 	assert client.post("/api/projetos/999/ordenar", json={"tipo": "itens", "ids": [1]}).status_code == 404
+
+
+def test_plugin_do_obsidian_para_baixar(client):
+	import io
+	import json
+	import zipfile
+
+	r = client.get("/obsidian/plugin.zip")
+	assert r.status_code == 200 and r.headers["content-type"] == "application/zip"
+	z = zipfile.ZipFile(io.BytesIO(r.content))
+	assert set(z.namelist()) == {f"projeto-agenda/{n}" for n in ("manifest.json", "main.js", "styles.css", "README.md")}
+	assert json.loads(z.read("projeto-agenda/manifest.json"))["id"] == "projeto-agenda"
+	assert "/obsidian/plugin.zip" in client.get("/importar").text
+
+
+def test_texto_com_link_do_obsidian_vira_link_no_projeto(client):
+	# o plugin acrescenta `obsidian:` no cabeçalho do que envia
+	txt = "---\nobsidian: obsidian://open?vault=Notas&file=Planos%2FViol%C3%A3o\nprojeto: Violão\narea: lazer\n---\n## Semana 1\n- [ ] A\n"
+	pid = client.post("/api/planos/importar", json={"texto": txt}).json()["projeto_id"]
+	links = client.get(f"/api/projetos/{pid}").json()["links"]
+	assert any(l["url"].startswith("obsidian://open?vault=Notas") for l in links)

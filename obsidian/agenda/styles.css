@@ -1,0 +1,12 @@
+.agenda-previa h3 { margin-top: 0; }
+.agenda-resumo { color: var(--text-muted); }
+.agenda-aviso { color: var(--text-warning); margin: 4px 0; }
+.agenda-arvore { list-style: none; padding: 0; margin: 12px 0; max-height: 45vh; overflow-y: auto; font-size: var(--font-ui-small); }
+.agenda-arvore li { display: flex; gap: 8px; align-items: baseline; padding-top: 2px; padding-bottom: 2px; }
+.agenda-projeto, .agenda-etapa { font-weight: 600; }
+.agenda-feito { color: var(--text-faint); }
+.agenda-acao { font-size: 11px; padding: 0 6px; border-radius: 6px; }
+.agenda-novo { background: var(--background-modifier-success); }
+.agenda-atualizado { background: var(--background-modifier-border); }
+.agenda-dica { color: var(--text-faint); font-size: var(--font-ui-smaller); }
+.agenda-botoes { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
